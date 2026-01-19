@@ -1,0 +1,10 @@
+[
+  {
+    "modid": "autosplittimer",
+    "name": "AutoSplit Timer",
+    "version": "${version}",
+    "mcversion": "1.12.2",
+    "description": "Tick-perfect PRE/POST logger for TAS & physics verification",
+    "authorList": ["you"]
+  }
+]
