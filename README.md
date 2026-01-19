@@ -21,7 +21,7 @@ AutoSplit Timer Mod は、**一度設定したら、あとは走るだけ**で�
 
 ### 最小構成での使い方
 
-1. 画面右のReleaseからMod (autosplittimer-x.x.x.jar) をダウンロード
+1. 画面右のReleasesからMod (autosplittimer-x.x.x.jar) をダウンロード
 2. Forge 1.12.2（クライアント）に MOD を導入 ()
 3. スタート・ラップ・ゴールの領域を設定
 4. 走る
