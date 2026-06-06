@@ -1,5 +1,8 @@
 # AutoSplit Timer Mod（Minecraft Java 1.12.2）
 
+https://www.curseforge.com/minecraft/mc-mods/autosplit-timer-mod/preview
+こちらからのDLをお勧めします。
+
 **Minecraftアスレチック勢向け・自動ラップタイマー**
 
 **マルチサーバーでも使える。
