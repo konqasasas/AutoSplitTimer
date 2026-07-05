@@ -21,7 +21,7 @@ AutoSplit Timer Mod は、**一度設定したら、あとは走るだけ**で�
 
 ### 最小構成での使い方
 
-1. [こちら](https://www.curseforge.com/minecraft/mc-mods/autosplit-timer-mod)からMod (autosplittimer-x.x.x.jar) をダウンロード
+1. [こちら](https://www.curseforge.com/minecraft/mc-mods/autosplit-timer-mod/files/all?page=1&pageSize=20&showAlphaFiles=hide)からMod (autosplittimer-x.x.x.jar) をダウンロード
 2. Forge 1.12.2（クライアント）に MOD を導入 ()
 3. スタート・ラップ・ゴールの領域を設定
 4. 走る
