@@ -28,7 +28,7 @@ AutoSplit Timer Mod は、**一度設定したら、あとは走るだけ**で�
 
 以下のコマンドをそのまま入力してください。
 
-```jsx
+```
 /ast course set MyCourse
 /ast seg add 0 "Start" height 1
 /ast seg add 1 "Lap1"  height 0.5
