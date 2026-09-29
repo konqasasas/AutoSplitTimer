@@ -13,7 +13,7 @@ MCEFなどの追加MODは必要ありません。
 ## 導入
 
 1. Minecraft Forge 1.12.2を導入します。
-2. `autosplittimer-0.1.0.jar`をMinecraftの`mods`フォルダーへ入れます。
+2. `autosplittimer-1.0.0.jar`をMinecraftの`mods`フォルダーへ入れます。
 3. ワールドに入り、`Y`キーで設定画面を開きます。
 
 キー設定はMinecraftの「操作設定」から変更できます。`/ast gui`でも設定画面を開けます。

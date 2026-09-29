@@ -28,7 +28,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 public class AutoSplitTimerMod {
     public static final String MODID = "autosplittimer";
     public static final String NAME = "AutoSplit Timer";
-    public static final String VERSION = "0.1.0";
+    public static final String VERSION = "1.0.0";
 
     @Mod.Instance(MODID)
     public static AutoSplitTimerMod INSTANCE;
