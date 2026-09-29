@@ -1,0 +1,30 @@
+# Gradle and build output
+.gradle/
+build/
+mcmodsrepo/
+out/
+bin/
+
+# Minecraft development runtime
+run/
+*.astcourse
+
+# IDE files
+.idea/
+.vscode/
+.settings/
+.classpath
+.project
+*.iml
+*.launch
+
+# Local agent and design tooling
+.agents/
+.codex/
+.impeccable/
+
+# OS and crash files
+.DS_Store
+Thumbs.db
+hs_err_pid*
+*.log
