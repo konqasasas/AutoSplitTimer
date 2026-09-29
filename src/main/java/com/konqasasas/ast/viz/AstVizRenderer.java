@@ -15,15 +15,20 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 /** World visualization for all segments. */
 public class AstVizRenderer {
     public enum Mode { OUTLINE, FILL, BOTH }
 
     private static volatile boolean ENABLED = true;
-    private static volatile Mode MODE = Mode.OUTLINE;
+    private static volatile Mode MODE = Mode.BOTH;
+    private static final Map<AstData.Segment, GroundMesh> GROUND_MESHES = new WeakHashMap<>();
 
     // Fixed per spec: radius 50 blocks => distSq <= 2500
     private static final double DIST_SQ_MAX = 2500.0;
@@ -57,6 +62,11 @@ public class AstVizRenderer {
         return MODE.name().toLowerCase(Locale.ROOT);
     }
 
+    /** Invalidate cached connected-region geometry after a course edit. */
+    public static void invalidateGeometry() {
+        GROUND_MESHES.clear();
+    }
+
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent e) {
         AstAreaEditor editor = AstAreaEditor.get();
@@ -87,6 +97,7 @@ public class AstVizRenderer {
                 GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
         GlStateManager.glLineWidth(2.0f);
         GlStateManager.depthMask(false);
+        GlStateManager.disableCull();
 
         int maxIndex = maxIndex(course);
         boolean editing = editor.isActive();
@@ -100,12 +111,26 @@ public class AstVizRenderer {
             float b = (color & 0xFF) / 255.0f;
 
             boolean selected = editing && seg.index == editor.getSegmentIndex();
-            for (AxisAlignedBB bb : boxesFor(seg)) {
-                Vec3d c = new Vec3d((bb.minX + bb.maxX) * 0.5, (bb.minY + bb.maxY) * 0.5, (bb.minZ + bb.maxZ) * 0.5);
+            if ("ground".equals(seg.detection) && seg.groundCells != null) {
+                GroundMesh mesh = groundMesh(seg);
+                if (selected || MODE == Mode.FILL || MODE == Mode.BOTH) {
+                    drawGroundFill(mesh, playerPos, r, g, b, selected ? 0.26f : (editing ? 0.06f : 0.16f));
+                }
+                if (selected || MODE == Mode.OUTLINE || MODE == Mode.BOTH) {
+                    GlStateManager.glLineWidth(selected ? 3.0f : 1.5f);
+                    drawGroundOutline(mesh, playerPos, r, g, b, selected ? 1.0f : (editing ? 0.32f : 0.85f));
+                }
+                continue;
+            }
+
+            if (seg.aabb != null) {
+                AxisAlignedBB bb = seg.aabb.toAabb();
+                Vec3d c = new Vec3d((bb.minX + bb.maxX) * 0.5, (bb.minY + bb.maxY) * 0.5,
+                        (bb.minZ + bb.maxZ) * 0.5);
                 if (c.squareDistanceTo(playerPos) > DIST_SQ_MAX) continue;
                 AxisAlignedBB renderBox = selected ? bb.grow(0.003) : bb;
                 if (selected || MODE == Mode.FILL || MODE == Mode.BOTH) {
-                    drawFilledAabb(renderBox, r, g, b, selected ? 0.24f : (editing ? 0.06f : 0.20f));
+                    drawFilledAabb(renderBox, r, g, b, selected ? 0.26f : (editing ? 0.06f : 0.16f));
                 }
                 if (selected || MODE == Mode.OUTLINE || MODE == Mode.BOTH) {
                     GlStateManager.glLineWidth(selected ? 3.0f : 1.5f);
@@ -116,6 +141,7 @@ public class AstVizRenderer {
 
         GlStateManager.glLineWidth(1.0f);
         GlStateManager.depthMask(true);
+        GlStateManager.enableCull();
         GlStateManager.disableBlend();
         GlStateManager.enableLighting();
         GlStateManager.enableTexture2D();
@@ -123,18 +149,53 @@ public class AstVizRenderer {
         GlStateManager.popMatrix();
     }
 
-    private static List<AxisAlignedBB> boxesFor(AstData.Segment segment) {
-        List<AxisAlignedBB> boxes = new ArrayList<>();
-        if ("ground".equals(segment.detection) && segment.groundCells != null) {
-            for (AstData.GroundCell cell : segment.groundCells) {
-                if (cell == null) continue;
-                boxes.add(new AxisAlignedBB(cell.x, cell.y + 0.0125, cell.z,
-                        cell.x + 1, cell.y + 0.045, cell.z + 1));
-            }
-        } else if (segment.aabb != null) {
-            boxes.add(segment.aabb.toAabb());
+    private static GroundMesh groundMesh(AstData.Segment segment) {
+        GroundMesh cached = GROUND_MESHES.get(segment);
+        if (cached != null) return cached;
+        GroundMesh created = GroundMesh.build(segment.groundCells);
+        GROUND_MESHES.put(segment, created);
+        return created;
+    }
+
+    private static void drawGroundFill(GroundMesh mesh, Vec3d player, float r, float g, float b, float a) {
+        Tessellator tes = Tessellator.getInstance();
+        BufferBuilder buf = tes.getBuffer();
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+        for (GroundTile tile : mesh.tiles) {
+            if (!near(tile, player)) continue;
+            double y = tile.y + 0.014;
+            buf.pos(tile.x, y, tile.z).color(r, g, b, a).endVertex();
+            buf.pos(tile.x, y, tile.z + 1).color(r, g, b, a).endVertex();
+            buf.pos(tile.x + 1, y, tile.z + 1).color(r, g, b, a).endVertex();
+            buf.pos(tile.x + 1, y, tile.z).color(r, g, b, a).endVertex();
         }
-        return boxes;
+        tes.draw();
+    }
+
+    private static void drawGroundOutline(GroundMesh mesh, Vec3d player, float r, float g, float b, float a) {
+        Tessellator tes = Tessellator.getInstance();
+        BufferBuilder buf = tes.getBuffer();
+        buf.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
+        for (GroundTile tile : mesh.tiles) {
+            if (!near(tile, player)) continue;
+            double y = tile.y + 0.018;
+            if ((tile.exposedEdges & GroundTile.NORTH) != 0)
+                line(buf, tile.x, y, tile.z, tile.x + 1, y, tile.z, r, g, b, a);
+            if ((tile.exposedEdges & GroundTile.SOUTH) != 0)
+                line(buf, tile.x, y, tile.z + 1, tile.x + 1, y, tile.z + 1, r, g, b, a);
+            if ((tile.exposedEdges & GroundTile.WEST) != 0)
+                line(buf, tile.x, y, tile.z, tile.x, y, tile.z + 1, r, g, b, a);
+            if ((tile.exposedEdges & GroundTile.EAST) != 0)
+                line(buf, tile.x + 1, y, tile.z, tile.x + 1, y, tile.z + 1, r, g, b, a);
+        }
+        tes.draw();
+    }
+
+    private static boolean near(GroundTile tile, Vec3d player) {
+        double dx = tile.x + 0.5 - player.x;
+        double dy = tile.y - player.y;
+        double dz = tile.z + 0.5 - player.z;
+        return dx * dx + dy * dy + dz * dz <= DIST_SQ_MAX;
     }
 
     private static int maxIndex(AstData.CourseFile course) {
@@ -195,6 +256,83 @@ public class AstVizRenderer {
         quad(buf, bb.minX, bb.minY, bb.maxZ, bb.maxX, bb.maxY, bb.maxZ, r, g, b, a, Face.SOUTH);
 
         tes.draw();
+    }
+
+    /** Cached top faces and perimeter flags for one connected On Ground region. */
+    private static final class GroundMesh {
+        final List<GroundTile> tiles;
+
+        private GroundMesh(List<GroundTile> tiles) {
+            this.tiles = tiles;
+        }
+
+        static GroundMesh build(List<AstData.GroundCell> source) {
+            List<GroundTile> tiles = new ArrayList<>();
+            Set<CellKey> occupied = new HashSet<>();
+            if (source == null) return new GroundMesh(tiles);
+
+            for (AstData.GroundCell cell : source) {
+                if (cell == null) continue;
+                CellKey key = new CellKey(cell.x, cell.y, cell.z);
+                if (occupied.add(key)) tiles.add(new GroundTile(cell.x, cell.y, cell.z));
+            }
+            for (GroundTile tile : tiles) {
+                int exposed = 0;
+                if (!occupied.contains(new CellKey(tile.x, tile.y, tile.z - 1))) exposed |= GroundTile.NORTH;
+                if (!occupied.contains(new CellKey(tile.x, tile.y, tile.z + 1))) exposed |= GroundTile.SOUTH;
+                if (!occupied.contains(new CellKey(tile.x - 1, tile.y, tile.z))) exposed |= GroundTile.WEST;
+                if (!occupied.contains(new CellKey(tile.x + 1, tile.y, tile.z))) exposed |= GroundTile.EAST;
+                tile.exposedEdges = exposed;
+            }
+            return new GroundMesh(tiles);
+        }
+    }
+
+    private static final class GroundTile {
+        static final int NORTH = 1;
+        static final int SOUTH = 2;
+        static final int WEST = 4;
+        static final int EAST = 8;
+
+        final int x;
+        final double y;
+        final int z;
+        int exposedEdges;
+
+        private GroundTile(int x, double y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+    }
+
+    /** Ground selection treats heights within editor precision as one plane. */
+    private static final class CellKey {
+        final int x;
+        final long y;
+        final int z;
+
+        private CellKey(int x, double y, int z) {
+            this.x = x;
+            this.y = Math.round(y * 10000.0);
+            this.z = z;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof CellKey)) return false;
+            CellKey key = (CellKey) other;
+            return x == key.x && y == key.y && z == key.z;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = x;
+            result = 31 * result + (int) (y ^ (y >>> 32));
+            result = 31 * result + z;
+            return result;
+        }
     }
 
     private enum Face { TOP, BOTTOM, NORTH, SOUTH, EAST, WEST }

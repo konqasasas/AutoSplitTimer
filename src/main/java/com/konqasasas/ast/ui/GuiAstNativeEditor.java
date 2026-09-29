@@ -122,7 +122,9 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     private void drawCourseMenu() {
         int x = 177, y = 44, w = 214;
         JsonArray names = state == null ? new JsonArray() : state.getAsJsonArray("courseNames");
-        int h = names.size() * 38 + 78;
+        boolean quickCourse = state != null && state.has("quickCourse") && state.get("quickCourse").getAsBoolean();
+        boolean canLeave = active() != null && !quickCourse;
+        int h = names.size() * 38 + 78 + (canLeave ? 39 : 0);
         panel(x, y, w, h);
         String current = active() == null ? "" : string(active(), "name", "");
         for (int i = 0; i < names.size(); i++) {
@@ -143,6 +145,18 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         drawRect(x + 1, createY + 38, x + w - 1, createY + 39, 0xFF292E32);
         text("コースを読み込む", x + 13, createY + 51, 11, 0xFFBDC4C8);
         hit(x, createY + 39, w, 39, () -> { courseMenu = false; chooseImport(); });
+        if (canLeave) {
+            int leaveY = createY + 78;
+            drawRect(x + 1, leaveY, x + w - 1, leaveY + 1, LINE_STRONG);
+            if (hovered(x, leaveY, w, 39)) roundedRect(x + 5, leaveY + 4, w - 10, 31, 5, CONTROL_HOVER);
+            text("コースから離脱", x + 13, leaveY + 13, 11, TEXT_MUTED);
+            hit(x, leaveY, w, 39, () -> {
+                action(request("leaveCourse"), "コースから離脱しました");
+                courseMenu = false;
+                toolsMenu = false;
+                openIndex = -1;
+            });
+        }
     }
 
     private void drawToolsMenu(int x, int y) {

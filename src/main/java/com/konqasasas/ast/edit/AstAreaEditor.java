@@ -4,6 +4,7 @@ import com.konqasasas.ast.core.AstCourseManager;
 import com.konqasasas.ast.core.AstData;
 import com.konqasasas.ast.core.AstRuntime;
 import com.konqasasas.ast.core.AstUtil;
+import com.konqasasas.ast.viz.AstVizRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -170,6 +171,7 @@ public final class AstAreaEditor {
             segment.groundCells.add(target);
             updateAabbFromGround(segment);
             groundBrushChanged = true;
+            AstVizRenderer.invalidateGeometry();
         } else {
             if (existing < 0) return;
             if (segment.groundCells.size() <= 1) {
@@ -179,6 +181,7 @@ public final class AstAreaEditor {
             segment.groundCells.remove(existing);
             updateAabbFromGround(segment);
             groundBrushChanged = true;
+            AstVizRenderer.invalidateGeometry();
         }
     }
 
@@ -246,6 +249,11 @@ public final class AstAreaEditor {
         groundBrushChanged = false;
         AstRuntime.get().forceResetToIdle();
         AstCourseManager.chat("未完成の範囲編集を中止しました");
+    }
+
+    /** Stop an in-world edit before changing or leaving the active course. */
+    public void cancelForCourseChange() {
+        if (active) cancelIncomplete();
     }
 
     /** Segment being edited. Used by the world renderer to emphasize only that range. */

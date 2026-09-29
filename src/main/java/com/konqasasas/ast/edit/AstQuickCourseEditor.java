@@ -4,6 +4,7 @@ import com.konqasasas.ast.core.AstCourseManager;
 import com.konqasasas.ast.core.AstData;
 import com.konqasasas.ast.core.AstRuntime;
 import com.konqasasas.ast.hud.AstHudConfigUtil;
+import com.konqasasas.ast.viz.AstVizRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.EnumFacing;
@@ -31,6 +32,12 @@ public final class AstQuickCourseEditor {
 
     public boolean isActive() {
         return active;
+    }
+
+    /** Stop intercepting world input when the active course is cleared. */
+    public void stopEditing() {
+        active = false;
+        worldInputReady = false;
     }
 
     public void begin() {
@@ -135,6 +142,7 @@ public final class AstQuickCourseEditor {
         segment.groundCells.clear();
         segment.groundCells.add(new AstData.GroundCell(x, y, z));
         segment.aabb = new AstData.AabbDto(x, y, z, x + 1.0, y + 1.0, z + 1.0);
+        AstVizRenderer.invalidateGeometry();
     }
 
     private void feedback(String message) {

@@ -3,6 +3,8 @@ package com.konqasasas.ast.cmd;
 import com.konqasasas.ast.core.*;
 import com.konqasasas.ast.hud.AstHudConfigUtil;
 import com.konqasasas.ast.hud.AstHudKeybinds;
+import com.konqasasas.ast.edit.AstAreaEditor;
+import com.konqasasas.ast.edit.AstQuickCourseEditor;
 import com.konqasasas.ast.viz.AstVizRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
@@ -135,6 +137,8 @@ public class CommandAstRoot extends CommandBase implements IClientCommand {
                 break;
             }
             case "leave": {
+                AstAreaEditor.get().cancelForCourseChange();
+                AstQuickCourseEditor.get().stopEditing();
                 cm.clearActiveCourse();
                 AstRuntime.get().forceResetToIdle();
                 msg(sender, "Left course.");

@@ -6,6 +6,7 @@ import com.google.gson.JsonSyntaxException;
 import com.konqasasas.ast.AutoSplitTimerMod;
 import com.konqasasas.ast.hud.AstHudConfigUtil;
 import com.konqasasas.ast.ui.AstNativeHudRenderer;
+import com.konqasasas.ast.viz.AstVizRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.text.TextComponentString;
 import org.apache.logging.log4j.LogManager;
@@ -126,6 +127,7 @@ public final class AstCourseManager {
         activeCourseName = courseBeforeTemporary != null && cache.containsKey(courseBeforeTemporary)
                 ? courseBeforeTemporary : null;
         courseBeforeTemporary = null;
+        AstVizRenderer.invalidateGeometry();
     }
 
     /** Global HUD is editable even when no course is selected. */
@@ -163,6 +165,7 @@ public final class AstCourseManager {
         temporaryCourse = null;
         courseBeforeTemporary = null;
         activeCourseName = null;
+        AstVizRenderer.invalidateGeometry();
     }
 
     /** True if a course JSON exists on disk. */
@@ -417,6 +420,7 @@ public final class AstCourseManager {
         if (temporaryCourse != null) return;
         AstData.CourseFile cf = getActiveCourse();
         if (cf == null) return;
+        AstVizRenderer.invalidateGeometry();
         try {
             ensureGlobalHudLoaded();
             globalHud = AstHudConfigUtil.copyHud(cf.hud);

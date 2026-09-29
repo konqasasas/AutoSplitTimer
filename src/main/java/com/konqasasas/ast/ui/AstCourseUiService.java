@@ -36,6 +36,9 @@ public final class AstCourseUiService {
             case "loadCourse":
                 loadCourse(requiredString(request, "name"));
                 return state();
+            case "leaveCourse":
+                leaveCourse();
+                return state();
             case "addLapCurrent":
                 addLapCurrent();
                 return state();
@@ -58,6 +61,7 @@ public final class AstCourseUiService {
                 AstQuickCourseEditor.get().begin();
                 return state();
             case "endQuickCourse":
+                AstQuickCourseEditor.get().stopEditing();
                 AstCourseManager.get().clearTemporaryCourse();
                 AstRuntime.get().forceResetToIdle();
                 AstCourseManager.chat("簡易計測を終了しました");
@@ -190,6 +194,13 @@ public final class AstCourseUiService {
         if (!AstCourseManager.get().loadExistingCourseAsActive(name)) {
             throw new IllegalArgumentException("コースを読み込めませんでした");
         }
+        AstRuntime.get().forceResetToIdle();
+    }
+
+    private static void leaveCourse() {
+        AstAreaEditor.get().cancelForCourseChange();
+        AstQuickCourseEditor.get().stopEditing();
+        AstCourseManager.get().clearActiveCourse();
         AstRuntime.get().forceResetToIdle();
     }
 
