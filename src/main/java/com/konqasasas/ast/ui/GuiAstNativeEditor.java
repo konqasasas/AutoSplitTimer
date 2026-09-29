@@ -3,7 +3,9 @@ package com.konqasasas.ast.ui;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.GuiScreen;
+import org.lwjgl.input.Keyboard;
 
+import java.io.IOException;
 import java.util.Locale;
 
 /** Native course editor. */
@@ -12,6 +14,9 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     private int openIndex = -1;
     private boolean courseMenu;
     private boolean toolsMenu;
+    private int heightEditIndex = -1;
+    private String heightInput = "";
+    private boolean replaceHeightInput;
 
     @Override
     public void initGui() {
@@ -37,25 +42,27 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         primaryButton("+ 現在地をラップとして追加", lapButtonX, top - 5, 198, 34,
                 () -> action(request("addLapCurrent"), "現在地にラップを追加しました"));
 
-        int listTop = top + 43;
+        int listTop = top + 55;
         int listBottom = height - 22;
         JsonArray points = active.getAsJsonArray("points");
         int totalHeight = 0;
         for (int i = 0; i < points.size(); i++) {
             JsonObject point = points.get(i).getAsJsonObject();
             boolean open = openIndex == point.get("index").getAsInt();
-            totalHeight += open ? (point.get("placed").getAsBoolean() ? 116 : 96) : 48;
+            totalHeight += pointHeight(point, open);
         }
-        int visibleHeight = Math.max(1, listBottom - (top + 55));
+        int visibleHeight = Math.max(1, listBottom - listTop);
         int maxScroll = Math.max(0, totalHeight - visibleHeight);
         scroll = Math.max(0, Math.min(scroll, maxScroll));
-        int y = top + 55 - scroll;
+        int cardHeight = Math.min(totalHeight, visibleHeight);
+        if (cardHeight > 0) roundedOutline(left, listTop, workspaceWidth, cardHeight, 7, SURFACE, LINE_STRONG);
+        int y = listTop - scroll;
         beginClip(left, listTop, workspaceWidth, Math.max(1, listBottom - listTop));
         for (int i = 0; i < points.size(); i++) {
             JsonObject point = points.get(i).getAsJsonObject();
             int index = point.get("index").getAsInt();
             boolean open = openIndex == index;
-            int rowHeight = open ? (point.get("placed").getAsBoolean() ? 116 : 96) : 48;
+            int rowHeight = pointHeight(point, open);
             if (y + rowHeight >= 45 && y < height) drawPoint(point, i, points.size(), left, y, workspaceWidth, rowHeight, open);
             y += rowHeight;
         }
@@ -170,8 +177,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     private void drawPoint(JsonObject point, int position, int total, int x, int y, int w, int h, boolean open) {
         String role = string(point, "role", "lap");
         int roleColor = "start".equals(role) ? START : "goal".equals(role) ? GOAL : LAP;
-        drawRect(x, y, x + w, y + h, open ? CONTROL_ACTIVE : SURFACE);
-        outline(x, y, w, h, LINE_STRONG);
+        drawPointBackground(position, total, x, y, w, h, open ? CONTROL_ACTIVE : SURFACE);
         verticallyCenteredMono(String.format(Locale.ROOT, "%02d", position + 1), x + 15, y, 48, 11, 0xFF727C84);
         drawRect(x + 44, y + 20, x + 51, y + 27, roleColor);
         verticallyCenteredText(role.toUpperCase(Locale.ROOT), x + 61, y, 48, 10, roleColor, true);
@@ -184,7 +190,10 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         verticallyCenteredText(meta, x + w - 76 - metaWidth, y, 48, 10, placed ? 0xFF929BA2 : 0xFFD18A90, false);
         chevron(x + w - 27, y + 20, 8, open, TEXT_FAINT);
         int index = point.get("index").getAsInt();
-        hit(x, y, w, 48, () -> openIndex = open ? -1 : index);
+        hit(x, y, w, 48, () -> {
+            heightEditIndex = -1;
+            openIndex = open ? -1 : index;
+        });
 
         if (!open) return;
         int editorY = y + 48;
@@ -222,10 +231,107 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         if ("aabb".equals(string(point, "detection", "ground"))) {
             double currentHeight = point.get("height").getAsDouble();
             text("高さ", x + 70, fieldY + 44, 9, TEXT_MUTED);
-            quietButton("-", x + 108, fieldY + 36, 26, 26, () -> action(request("updatePoint", "index", index, "height", Math.max(.05, currentHeight - .25)), null));
-            mono(String.format(Locale.ROOT, "%.2f", currentHeight), x + 143, fieldY + 43, 10, TEXT);
-            quietButton("+", x + 184, fieldY + 36, 26, 26, () -> action(request("updatePoint", "index", index, "height", Math.min(256, currentHeight + .25)), null));
+            quietButton("-", x + 108, fieldY + 36, 28, 28,
+                    () -> setHeight(index, Math.max(.05, currentHeight - .25)));
+            boolean editing = heightEditIndex == index;
+            inputField(x + 140, fieldY + 36, 64, 28, editing);
+            String shownHeight = editing ? heightInput : formatHeight(currentHeight);
+            centeredMono(shownHeight, x + 140, fieldY + 36, 64, 28, 10, TEXT);
+            if (editing && (System.currentTimeMillis() / 500L) % 2 == 0) {
+                int caretX = Math.min(x + 197, x + 145 + monoWidth(shownHeight, 10));
+                drawRect(caretX, fieldY + 43, caretX + 1, fieldY + 57, TEXT);
+            }
+            hit(x + 140, fieldY + 36, 64, 28, () -> beginHeightEdit(index, currentHeight));
+            quietButton("+", x + 208, fieldY + 36, 28, 28,
+                    () -> setHeight(index, Math.min(256, currentHeight + .25)));
         }
+    }
+
+    private int pointHeight(JsonObject point, boolean open) {
+        if (!open) return 48;
+        if (!point.get("placed").getAsBoolean()) return 96;
+        return "aabb".equals(string(point, "detection", "ground")) ? 146 : 116;
+    }
+
+    private void drawPointBackground(int position, int total, int x, int y, int w, int h, int color) {
+        int innerX = x + 1;
+        int innerW = w - 2;
+        boolean first = position == 0;
+        boolean last = position == total - 1;
+        if (first || last) {
+            roundedRect(innerX, y + (first ? 1 : 0), innerW, h - (first ? 1 : 0) - (last ? 1 : 0), 6, color);
+            if (first && !last) drawRect(innerX, y + 7, innerX + innerW, y + h, color);
+            if (last && !first) drawRect(innerX, y, innerX + innerW, y + h - 7, color);
+        } else {
+            drawRect(innerX, y, innerX + innerW, y + h, color);
+        }
+        if (!last) drawRect(x + 1, y + h - 1, x + w - 1, y + h, LINE_STRONG);
+    }
+
+    private void beginHeightEdit(int index, double currentHeight) {
+        if (heightEditIndex != index) {
+            heightEditIndex = index;
+            heightInput = formatHeight(currentHeight);
+            replaceHeightInput = true;
+        }
+    }
+
+    private void setHeight(int index, double value) {
+        heightEditIndex = index;
+        heightInput = formatHeight(value);
+        replaceHeightInput = false;
+        action(request("updatePoint", "index", index, "height", value), null);
+    }
+
+    private void updateHeightFromInput() {
+        if (heightEditIndex < 0 || heightInput.isEmpty() || ".".equals(heightInput)) return;
+        try {
+            double value = Double.parseDouble(heightInput);
+            if (Double.isFinite(value) && value > 0.0 && value <= 256.0) {
+                action(request("updatePoint", "index", heightEditIndex, "height", value), null);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+    }
+
+    private static String formatHeight(double value) {
+        String formatted = String.format(Locale.ROOT, "%.2f", value);
+        while (formatted.endsWith("0")) formatted = formatted.substring(0, formatted.length() - 1);
+        return formatted.endsWith(".") ? formatted.substring(0, formatted.length() - 1) : formatted;
+    }
+
+    @Override
+    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+        if (heightEditIndex >= 0) {
+            if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_RETURN || keyCode == Keyboard.KEY_NUMPADENTER) {
+                updateHeightFromInput();
+                heightEditIndex = -1;
+                return;
+            }
+            if (keyCode == Keyboard.KEY_BACK) {
+                if (replaceHeightInput) heightInput = "";
+                else if (!heightInput.isEmpty()) heightInput = heightInput.substring(0, heightInput.length() - 1);
+                replaceHeightInput = false;
+                updateHeightFromInput();
+                return;
+            }
+            if ((typedChar >= '0' && typedChar <= '9') || typedChar == '.') {
+                String next = replaceHeightInput ? String.valueOf(typedChar) : heightInput + typedChar;
+                if (next.length() <= 7 && count(next, '.') <= 1) {
+                    heightInput = next;
+                    replaceHeightInput = false;
+                    updateHeightFromInput();
+                }
+                return;
+            }
+        }
+        super.keyTyped(typedChar, keyCode);
+    }
+
+    private static int count(String value, char character) {
+        int count = 0;
+        for (int i = 0; i < value.length(); i++) if (value.charAt(i) == character) count++;
+        return count;
     }
 
     private void segmentButton(String label, int x, int y, int w, int h, boolean selected, Runnable action) {

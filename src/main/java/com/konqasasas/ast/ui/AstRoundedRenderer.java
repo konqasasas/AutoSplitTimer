@@ -14,8 +14,8 @@ import java.awt.image.BufferedImage;
 
 /** Anti-aliased rounded rectangles rendered from a reusable quarter-circle mask. */
 final class AstRoundedRenderer {
-    private static final int MASK_SIZE = 64;
-    private static final int SAMPLES = 4;
+    private static final int MASK_SIZE = 128;
+    private static final int SAMPLES = 8;
     private static ResourceLocation cornerMask;
 
     private AstRoundedRenderer() {}
@@ -50,6 +50,9 @@ final class AstRoundedRenderer {
 
         GlStateManager.enableTexture2D();
         GlStateManager.enableBlend();
+        // Minecraft keeps alpha testing enabled for GUI rendering. Its cutoff
+        // discards the faint edge samples that make this mask antialiased.
+        GlStateManager.disableAlpha();
         GlStateManager.disableCull();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
         GlStateManager.color(red, green, blue, alpha);
@@ -66,6 +69,7 @@ final class AstRoundedRenderer {
 
         GlStateManager.color(1f, 1f, 1f, 1f);
         GlStateManager.enableCull();
+        GlStateManager.enableAlpha();
         GlStateManager.disableBlend();
     }
 
