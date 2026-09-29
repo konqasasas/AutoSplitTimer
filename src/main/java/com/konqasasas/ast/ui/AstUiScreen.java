@@ -128,22 +128,67 @@ public abstract class AstUiScreen extends GuiScreen {
         drawRect(x + w - 1, y, x + w, y + h, color);
     }
 
-    /** Pixel-stable rounded fill; avoids texture filtering blur at Minecraft GUI scales. */
+    /** Rounded fill using the same quarter-circle fan technique as CyvForge Keystrokes. */
     protected void roundedRect(int x, int y, int w, int h, int radius, int color) {
         if (w <= 0 || h <= 0) return;
-        int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
+        float r = Math.max(0, Math.min(radius, Math.min(w, h) / 2f));
         if (r == 0) {
             drawRect(x, y, x + w, y + h, color);
             return;
         }
-        drawRect(x, y + r, x + w, y + h - r, color);
-        drawRect(x + r, y, x + w - r, y + h, color);
-        for (int row = 0; row < r; row++) {
-            double dy = r - row - 0.5;
-            int inset = (int) Math.ceil(r - Math.sqrt(Math.max(0.0, r * r - dy * dy)));
-            drawRect(x + inset, y + row, x + w - inset, y + row + 1, color);
-            drawRect(x + inset, y + h - row - 1, x + w - inset, y + h - row, color);
+        float left = x, top = y, right = x + w, bottom = y + h;
+        beginShape(color);
+
+        GL11.glBegin(GL11.GL_TRIANGLE_STRIP);
+        GL11.glVertex2f(left + r, top);
+        GL11.glVertex2f(left + r, bottom);
+        GL11.glVertex2f(right - r, top);
+        GL11.glVertex2f(right - r, bottom);
+        GL11.glEnd();
+
+        GL11.glBegin(GL11.GL_TRIANGLE_STRIP);
+        GL11.glVertex2f(left, top + r);
+        GL11.glVertex2f(right, top + r);
+        GL11.glVertex2f(left, bottom - r);
+        GL11.glVertex2f(right, bottom - r);
+        GL11.glEnd();
+
+        roundedCorner(right - r, top + r, r, -90);
+        roundedCorner(left + r, top + r, r, -180);
+        roundedCorner(left + r, bottom - r, r, 90);
+        roundedCorner(right - r, bottom - r, r, 0);
+        endShape();
+    }
+
+    private void roundedCorner(float centerX, float centerY, float radius, int startDegrees) {
+        final int segments = 18;
+        GL11.glBegin(GL11.GL_TRIANGLE_FAN);
+        GL11.glVertex2f(centerX, centerY);
+        for (int index = 0; index <= segments; index++) {
+            double angle = Math.toRadians(startDegrees + index * (90.0 / segments));
+            GL11.glVertex2f(centerX + radius * (float) Math.cos(angle),
+                    centerY + radius * (float) Math.sin(angle));
         }
+        GL11.glEnd();
+    }
+
+    private void beginShape(int color) {
+        float alpha = (color >>> 24 & 0xFF) / 255f;
+        float red = (color >>> 16 & 0xFF) / 255f;
+        float green = (color >>> 8 & 0xFF) / 255f;
+        float blue = (color & 0xFF) / 255f;
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.disableCull();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(red, green, blue, alpha);
+    }
+
+    private void endShape() {
+        GlStateManager.color(1f, 1f, 1f, 1f);
+        GlStateManager.enableCull();
+        GlStateManager.disableBlend();
+        GlStateManager.enableTexture2D();
     }
 
     protected void roundedOutline(int x, int y, int w, int h, int radius, int fill, int border) {
@@ -331,9 +376,8 @@ public abstract class AstUiScreen extends GuiScreen {
 
     protected void quietButton(String label, int x, int y, int w, int h, Runnable action) {
         boolean hover = hovered(x, y, w, h);
-        if (hover) {
-            roundedOutline(x, y, w, h, 6, CONTROL, LINE);
-        }
+        roundedOutline(x, y, w, h, 6, hover ? CONTROL_HOVER : CONTROL,
+                hover ? 0xFF657585 : LINE_CONTROL);
         centeredText(label, x, y, w, h, 11, hover ? TEXT_STRONG : TEXT_MUTED, false);
         hit(x, y, w, h, action);
     }
