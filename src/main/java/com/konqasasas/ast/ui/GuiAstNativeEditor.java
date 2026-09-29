@@ -232,7 +232,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
             double currentHeight = point.get("height").getAsDouble();
             text("高さ", x + 70, fieldY + 44, 9, TEXT_MUTED);
             quietButton("-", x + 108, fieldY + 36, 28, 28,
-                    () -> setHeight(index, Math.max(.05, currentHeight - .25)));
+                    () -> setHeight(index, Math.max(.0001, currentHeight - .25)));
             boolean editing = heightEditIndex == index;
             inputField(x + 140, fieldY + 36, 64, 28, editing);
             String shownHeight = editing ? heightInput : formatHeight(currentHeight);
@@ -295,7 +295,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     }
 
     private static String formatHeight(double value) {
-        String formatted = String.format(Locale.ROOT, "%.2f", value);
+        String formatted = String.format(Locale.ROOT, "%.4f", value);
         while (formatted.endsWith("0")) formatted = formatted.substring(0, formatted.length() - 1);
         return formatted.endsWith(".") ? formatted.substring(0, formatted.length() - 1) : formatted;
     }
@@ -317,7 +317,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
             }
             if ((typedChar >= '0' && typedChar <= '9') || typedChar == '.') {
                 String next = replaceHeightInput ? String.valueOf(typedChar) : heightInput + typedChar;
-                if (next.length() <= 7 && count(next, '.') <= 1) {
+                if (next.length() <= 9 && count(next, '.') <= 1) {
                     heightInput = next;
                     replaceHeightInput = false;
                     updateHeightFromInput();
