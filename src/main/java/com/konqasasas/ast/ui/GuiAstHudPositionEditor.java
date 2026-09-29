@@ -55,9 +55,9 @@ public final class GuiAstHudPositionEditor extends AstUiScreen {
         drawRect(width / 2, 0, width / 2 + 1, height, 0xFF1B2023);
         drawRect(0, height / 2, width, height / 2 + 1, 0xFF1B2023);
 
+        roundedOutline(previewX - 3, previewY - 3, previewW + 6, previewH + 6, 6,
+                0x2811161B, dragging ? 0xFF8FA5B3 : 0xFF53616A);
         AstNativeHudRenderer.drawPositionPreview(hud, previewX, previewY);
-        outline(previewX - 2, previewY - 2, previewW + 4, previewH + 4,
-                dragging ? 0xFF8FA5B3 : 0xFF53616A);
         hit(previewX - 4, previewY - 4, previewW + 8, previewH + 8, () -> {
             dragging = true;
             grabX = this.mouseX - previewX;
@@ -67,8 +67,7 @@ public final class GuiAstHudPositionEditor extends AstUiScreen {
         int barW = Math.min(610, width - 28);
         int barX = (width - barW) / 2;
         int barY = 14;
-        drawRect(barX, barY, barX + barW, barY + 52, 0xF5181C1F);
-        outline(barX, barY, barW, 52, 0xFF3D464C);
+        roundedOutline(barX, barY, barW, 52, 8, 0xF5181C1F, 0xFF3D464C);
         strong("HUDをドラッグして移動", barX + 16, barY + 11, 12, TEXT_STRONG);
         text("離した位置に合わせて基準辺を自動調整します", barX + 16, barY + 31, 9, TEXT_MUTED);
         quietButton("キャンセル", barX + barW - 188, barY + 10, 78, 31, this::cancel);

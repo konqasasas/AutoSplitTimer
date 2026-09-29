@@ -121,13 +121,6 @@ public abstract class AstUiScreen extends GuiScreen {
         roundedOutline(x, y, w, h, 8, SURFACE, LINE);
     }
 
-    protected void outline(int x, int y, int w, int h, int color) {
-        drawRect(x, y, x + w, y + 1, color);
-        drawRect(x, y + h - 1, x + w, y + h, color);
-        drawRect(x, y, x + 1, y + h, color);
-        drawRect(x + w - 1, y, x + w, y + h, color);
-    }
-
     /** Rounded fill backed by a supersampled alpha mask. */
     protected void roundedRect(int x, int y, int w, int h, int radius, int color) {
         AstRoundedRenderer.draw(x, y, x + w, y + h, radius, color);

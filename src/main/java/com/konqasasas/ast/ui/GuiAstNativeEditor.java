@@ -169,7 +169,8 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     }
 
     private void menuItem(String label, int x, int y, int w, Runnable action, boolean danger) {
-        if (hovered(x, y, w, 36)) drawRect(x + 1, y + 1, x + w - 1, y + 35, danger ? 0xFF2B1E21 : CONTROL_HOVER);
+        if (hovered(x, y, w, 36)) roundedRect(x + 5, y + 3, w - 10, 30, 5,
+                danger ? 0xFF2B1E21 : CONTROL_HOVER);
         verticallyCenteredText(label, x + 12, y, 36, 10, danger ? 0xFFEFC2C5 : 0xFFBDC4C8, false);
         hit(x, y, w, 36, action);
     }
