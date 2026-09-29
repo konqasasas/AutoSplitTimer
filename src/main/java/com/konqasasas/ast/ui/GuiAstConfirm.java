@@ -2,7 +2,7 @@ package com.konqasasas.ast.ui;
 
 import net.minecraft.client.gui.GuiScreen;
 
-/** Angular confirmation dialog for destructive and replacing operations. */
+/** Confirmation dialog for destructive and replacing operations. */
 public final class GuiAstConfirm extends AstUiScreen {
     private final GuiScreen parent;
     private final String title;
@@ -31,7 +31,7 @@ public final class GuiAstConfirm extends AstUiScreen {
         int x = (width - w) / 2;
         int y = (height - h) / 2;
         panel(x, y, w, h);
-        drawRect(x, y + 48, x + w, y + 49, LINE);
+        dialogHeader(x, y, w, 49);
         strong(title, x + 22, y + 17, 18, TEXT_STRONG);
         strong(primary, x + 22, y + 72, 13, TEXT_STRONG);
         text(detail, x + 22, y + 98, 11, TEXT_MUTED);
@@ -42,8 +42,8 @@ public final class GuiAstConfirm extends AstUiScreen {
 
     private void dangerButton(String label, int x, int y, int w, int h) {
         boolean hover = hovered(x, y, w, h);
-        drawRect(x, y, x + w, y + h, hover ? 0xFF4A292E : 0xFF342126);
-        outline(x, y, w, h, hover ? 0xFFD98288 : 0xFF865159);
+        roundedOutline(x, y, w, h, 6, hover ? 0xFF4A292E : 0xFF342126,
+                hover ? 0xFFD98288 : 0xFF865159);
         centeredText(label, x, y, w, h, 11, 0xFFF0C7CA, false);
         hit(x, y, w, h, this::confirm);
     }

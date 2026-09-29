@@ -146,6 +146,13 @@ public abstract class AstUiScreen extends GuiScreen {
         roundedOutline(x, y, w, h, 6, 0xFF12171C, focused ? ACCENT : LINE_CONTROL);
     }
 
+    /** Header fill that keeps the parent panel's top corners and border visible. */
+    protected void dialogHeader(int x, int y, int w, int h) {
+        roundedRect(x + 1, y + 1, w - 2, h - 1, 7, 0xFF171A1D);
+        drawRect(x + 1, y + 8, x + w - 1, y + h, 0xFF171A1D);
+        drawRect(x + 1, y + h - 1, x + w - 1, y + h, LINE);
+    }
+
     private void softShadow(int x, int y, int w, int h, int radius) {
         roundedRect(x - 3, y + 4, w + 6, h + 3, radius + 3, 0x18000000);
         roundedRect(x - 2, y + 3, w + 4, h + 2, radius + 2, 0x22000000);

@@ -37,14 +37,12 @@ public final class GuiAstTextPrompt extends AstUiScreen {
         int x = (width - w) / 2;
         int y = (height - h) / 2;
         panel(x, y, w, h);
-        drawRect(x, y, x + w, y + 54, 0xFF171A1D);
-        drawRect(x, y + 53, x + w, y + 54, LINE);
+        dialogHeader(x, y, w, 54);
         strong(title, x + 20, y + 17, 18, TEXT_STRONG);
         text(description, x + 20, y + 72, 11, TEXT_MUTED);
         text("日本語は Ctrl+V で貼り付け", x + 20, y + 91, 9, TEXT_FAINT);
         int inputY = y + 111;
-        drawRect(x + 20, inputY, x + w - 20, inputY + 34, 0xFF191D20);
-        outline(x + 20, inputY, w - 40, 34, 0xFF6F8290);
+        inputField(x + 20, inputY, w - 40, 34, true);
         String shown = fitFromEnd(value, w - 58);
         verticallyCenteredText(shown, x + 29, inputY, 34, 12, TEXT, false);
         if ((System.currentTimeMillis() / 500L) % 2 == 0) {

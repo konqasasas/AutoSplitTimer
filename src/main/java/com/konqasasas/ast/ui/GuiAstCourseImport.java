@@ -22,7 +22,7 @@ public final class GuiAstCourseImport extends AstUiScreen {
         int x = (width - w) / 2;
         int y = (height - h) / 2;
         panel(x, y, w, h);
-        drawRect(x, y + 53, x + w, y + 54, LINE);
+        dialogHeader(x, y, w, 54);
         strong("コースを読み込む", x + 22, y + 17, 18, TEXT_STRONG);
 
         text("ファイル", x + 22, y + 72, 9, TEXT_FAINT);
@@ -30,8 +30,7 @@ public final class GuiAstCourseImport extends AstUiScreen {
 
         text("読み込み後のコース名", x + 22, y + 122, 9, TEXT_MUTED);
         int inputY = y + 140;
-        drawRect(x + 22, inputY, x + w - 22, inputY + 34, 0xFF191D20);
-        outline(x + 22, inputY, w - 44, 34, 0xFF5D6B75);
+        inputField(x + 22, inputY, w - 44, 34, false);
         verticallyCenteredText(courseName, x + 33, inputY, 34, 12, TEXT, false);
         hit(x + 22, inputY, w - 44, 34, () -> mc.displayGuiScreen(new GuiAstTextPrompt(this,
                 "読み込み後のコース名", "既存コースは上書きしません", courseName, value -> courseName = value)));
@@ -51,8 +50,7 @@ public final class GuiAstCourseImport extends AstUiScreen {
     }
 
     private void info(String label, String value, int x, int y, int w) {
-        drawRect(x, y, x + w, y + 50, 0xFF14181B);
-        outline(x, y, w, 50, 0xFF353C41);
+        roundedOutline(x, y, w, 50, 6, 0xFF14181B, 0xFF353C41);
         text(label, x + 11, y + 9, 8, TEXT_FAINT);
         strong(value, x + 11, y + 27, 10, TEXT);
     }

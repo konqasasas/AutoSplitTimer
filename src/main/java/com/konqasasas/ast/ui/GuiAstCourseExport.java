@@ -24,7 +24,7 @@ public final class GuiAstCourseExport extends AstUiScreen {
         int x = (width - w) / 2;
         int y = (height - h) / 2;
         panel(x, y, w, h);
-        drawRect(x, y + 53, x + w, y + 54, LINE);
+        dialogHeader(x, y, w, 54);
         strong("コースを共有", x + 22, y + 17, 18, TEXT_STRONG);
 
         String name = course == null || course.courseName == null ? "--" : course.courseName;
@@ -51,10 +51,10 @@ public final class GuiAstCourseExport extends AstUiScreen {
     private void option(String title, String detail, boolean records, int x, int y, int w, int h) {
         boolean selected = includeRecords == records;
         boolean hover = !busy && hovered(x, y, w, h);
-        drawRect(x, y, x + w, y + h, selected ? 0xFF222B30 : hover ? CONTROL_HOVER : 0xFF15191C);
-        outline(x, y, w, h, selected ? 0xFF71818C : 0xFF3D454B);
-        drawRect(x + 14, y + 17, x + 22, y + 25, selected ? START : 0xFF1A1E21);
-        outline(x + 14, y + 17, 8, 8, selected ? START : 0xFF657078);
+        roundedOutline(x, y, w, h, 7, selected ? 0xFF222B30 : hover ? CONTROL_HOVER : 0xFF15191C,
+                selected ? 0xFF71818C : 0xFF3D454B);
+        roundedOutline(x + 14, y + 17, 9, 9, 2, selected ? START : 0xFF14191D,
+                selected ? START : 0xFF657078);
         strong(title, x + 33, y + 11, 11, selected ? TEXT_STRONG : TEXT);
         text(detail, x + 33, y + 33, 9, TEXT_MUTED);
         if (!busy) hit(x, y, w, h, () -> includeRecords = records);
