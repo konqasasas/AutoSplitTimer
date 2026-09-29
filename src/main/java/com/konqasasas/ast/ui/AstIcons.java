@@ -24,6 +24,10 @@ final class AstIcons {
 
     private AstIcons() {}
 
+    static void warmUp() {
+        ensureTexture();
+    }
+
     static void drawChevron(int x, int y, int size, boolean up, int argb) {
         ensureTexture();
         float u0 = up ? 0f : .5f;

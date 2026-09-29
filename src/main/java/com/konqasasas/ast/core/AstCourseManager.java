@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.konqasasas.ast.AutoSplitTimerMod;
 import com.konqasasas.ast.hud.AstHudConfigUtil;
+import com.konqasasas.ast.ui.AstNativeHudRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.text.TextComponentString;
 import org.apache.logging.log4j.LogManager;
@@ -142,6 +143,7 @@ public final class AstCourseManager {
     public synchronized void saveHudConfig(AstData.HudConfig hud) {
         if (hud == null) return;
         AstHudConfigUtil.normalizeHud(hud);
+        AstNativeHudRenderer.invalidateModelCache();
         globalHud = AstHudConfigUtil.copyHud(hud);
         saveGlobalHudSafe(globalHud);
         for (AstData.CourseFile course : cache.values()) {

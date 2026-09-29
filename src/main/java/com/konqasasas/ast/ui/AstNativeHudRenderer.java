@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import com.konqasasas.ast.core.AstCourseManager;
 import com.konqasasas.ast.core.AstData;
 import com.konqasasas.ast.core.AstUtil;
-import com.konqasasas.ast.hud.AstHudConfigUtil;
 import com.konqasasas.ast.hud.AstHudModel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -23,6 +22,10 @@ public final class AstNativeHudRenderer {
     private static final List<String> DEFAULT_ORDER = Arrays.asList(
             "courseName", "time", "segment", "segmentTime", "bpt", "sob",
             "splitList", "prevSeg", "attempt", "bestSeg", "bestSplit");
+    private static AstData.CourseFile cachedCourse;
+    private static AstData.HudConfig cachedHud;
+    private static long cachedWorldTick = Long.MIN_VALUE;
+    private static JsonObject cachedModel;
 
     @SubscribeEvent
     public void onOverlay(RenderGameOverlayEvent.Post event) {
@@ -33,8 +36,7 @@ public final class AstNativeHudRenderer {
         if (course == null || course.hud == null || "off".equalsIgnoreCase(course.hud.preset)) return;
 
         AstData.HudConfig hud = course.hud;
-        AstHudConfigUtil.normalizeHud(hud);
-        JsonObject model = AstHudModel.buildSnapshot(course, hud);
+        JsonObject model = modelForTick(minecraft, course, hud);
         JsonObject values = model.getAsJsonObject("values");
         JsonArray splits = model.getAsJsonArray("splits");
         int panelWidth = Math.max(160, hud.splitListWidth);
@@ -52,6 +54,26 @@ public final class AstNativeHudRenderer {
         GlStateManager.scale(renderScale, renderScale, 1);
         drawPanel(hud, values, splits, panelWidth, panelHeight);
         GlStateManager.popMatrix();
+    }
+
+    private static JsonObject modelForTick(Minecraft minecraft, AstData.CourseFile course,
+                                           AstData.HudConfig hud) {
+        long worldTick = minecraft.world == null ? Long.MIN_VALUE : minecraft.world.getTotalWorldTime();
+        if (cachedModel == null || cachedCourse != course || cachedHud != hud || cachedWorldTick != worldTick) {
+            cachedCourse = course;
+            cachedHud = hud;
+            cachedWorldTick = worldTick;
+            cachedModel = AstHudModel.buildSnapshot(course, hud);
+        }
+        return cachedModel;
+    }
+
+    /** Force a same-tick refresh after settings are saved while the world is paused. */
+    public static void invalidateModelCache() {
+        cachedModel = null;
+        cachedCourse = null;
+        cachedHud = null;
+        cachedWorldTick = Long.MIN_VALUE;
     }
 
     private static void drawPanel(AstData.HudConfig hud, JsonObject values, JsonArray splits, int width, int height) {

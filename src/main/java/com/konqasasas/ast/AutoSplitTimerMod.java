@@ -8,6 +8,7 @@ import com.konqasasas.ast.edit.AstQuickCourseEditor;
 import com.konqasasas.ast.hud.AstHudKeybinds;
 import com.konqasasas.ast.ui.AstNativeHudRenderer;
 import com.konqasasas.ast.ui.AstFonts;
+import com.konqasasas.ast.ui.AstUiPreloader;
 import com.konqasasas.ast.viz.AstVizRenderer;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -48,6 +49,7 @@ public class AutoSplitTimerMod {
         MinecraftForge.EVENT_BUS.register(new AstNativeHudRenderer());
         MinecraftForge.EVENT_BUS.register(new AstVizRenderer());
         FMLCommonHandler.instance().bus().register(new AstHudKeybinds());
+        FMLCommonHandler.instance().bus().register(new AstUiPreloader());
         MinecraftForge.EVENT_BUS.register(AstAreaEditor.get());
         MinecraftForge.EVENT_BUS.register(AstQuickCourseEditor.get());
         ClientCommandHandler.instance.registerCommand(new CommandAstRoot());

@@ -83,6 +83,14 @@ public final class AstFont {
         atlas(size).draw(text, x, y, argb);
     }
 
+    /** Rasterize and upload a representative set before a screen needs it. */
+    void prime(String text, float size) {
+        if (text == null || text.isEmpty()) return;
+        SizeAtlas atlas = atlas(size);
+        for (int i = 0; i < text.length(); i++) atlas.glyph(text.charAt(i));
+        if (atlas.dirty) atlas.upload();
+    }
+
     /** Upload all glyphs collected during the current UI frame in one pass. */
     void flush() {
         for (SizeAtlas atlas : atlases.values()) if (atlas.dirty) atlas.upload();

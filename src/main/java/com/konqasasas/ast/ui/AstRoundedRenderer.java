@@ -20,6 +20,10 @@ final class AstRoundedRenderer {
 
     private AstRoundedRenderer() {}
 
+    static void warmUp() {
+        ensureMask();
+    }
+
     static void draw(float left, float top, float right, float bottom, float radius, int color) {
         if (right <= left || bottom <= top) return;
         left = pixelAligned(left);
