@@ -50,7 +50,10 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
         // visible as flicker while the wheel kept producing events.
         scroll = Math.max(0, Math.min(scroll, maxScroll));
         panel(left, top, workspaceW, layoutH);
-        drawRect(left + 1, top + 1, controlsX, top + layoutH - 1, 0xFF111416);
+        // Preserve the parent card's curved left edge instead of covering its
+        // antialiased corners with a square preview background.
+        roundedRect(left + 1, top + 1, previewW, layoutH - 2, 7, 0xFF111416);
+        drawRect(left + 8, top + 1, controlsX, top + layoutH - 1, 0xFF111416);
         drawRect(controlsX, top + 1, controlsX + 1, top + layoutH - 1, LINE);
 
         beginClip(left + 1, top + 1, previewW - 1, layoutH - 2);
@@ -85,11 +88,11 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
     }
 
     private void drawScrollbar(int x, int y, int h, int total, int visible, int maxScroll) {
-        drawRect(x, y, x + 3, y + h, 0xFF1A1E21);
+        roundedRect(x, y, 3, h, 2, 0xFF1A1E21);
         int thumb = Math.max(28, Math.min(h, Math.round(h * (visible / (float) Math.max(visible, total)))));
         int travel = h - thumb;
         int thumbY = y + (maxScroll == 0 ? 0 : Math.round(travel * (scroll / (float) maxScroll)));
-        drawRect(x, thumbY, x + 3, thumbY + thumb, 0xFF59636A);
+        roundedRect(x, thumbY, 3, thumb, 2, 0xFF687784);
     }
 
     private int drawSelectionColumns(int x, int y, int w) {
@@ -109,8 +112,8 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
             boolean on = enabled(key);
             if (hovered(x, ry, half, 39)) drawRect(x, ry, x + half, ry + 39, 0xFF1D2225);
             drawRect(x, ry + 38, x + half, ry + 39, 0xFF292E32);
-            outline(x + 12, ry + 15, 8, 8, on ? START : 0xFF606B72);
-            if (on) drawRect(x + 13, ry + 16, x + 19, ry + 22, START);
+            roundedOutline(x + 12, ry + 15, 9, 9, 2, on ? START : 0xFF14191D,
+                    on ? START : 0xFF606B72);
             verticallyCenteredText(label(key), x + 29, ry, 39, 10, on ? TEXT : 0xFF788289, false);
             hit(x, ry, half, 39, () -> { hud.toggles.put(key, !enabled(key)); save(); });
         }
@@ -140,8 +143,7 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
 
     private void arrowButton(int x, int y, boolean up, boolean enabled, Runnable action) {
         if (enabled && hovered(x, y, 24, 25)) {
-            drawRect(x, y, x + 24, y + 25, CONTROL);
-            outline(x, y, 24, 25, 0xFF465159);
+            roundedOutline(x, y, 24, 25, 5, CONTROL, 0xFF465159);
         }
         chevron(x + 6, y + 6, 12, up, enabled ? 0xFF9AA4AA : 0xFF41484D);
         if (enabled) hit(x, y, 24, 25, action);
@@ -220,10 +222,8 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
         text("適用後に各項目を編集できます", x + 15, y + 42, 9, TEXT_FAINT);
         String[][] presets = {{"standard", "標準"}, {"compact", "コンパクト"}, {"detailed", "詳細"}, {"minimal", "最小"}};
         int bw = 55, bx = x + w - 13 - bw * 4;
-        for (int i = 0; i < presets.length; i++) {
-            final String preset = presets[i][0];
-            segmentChoice(presets[i][1], bx + i * bw, y + 22, bw, 27, preset.equals(hud.preset), () -> pendingPreset = preset);
-        }
+        drawSegmentGroup(presets, hud.preset, bx, y + 22, bw * 4, 27,
+                value -> pendingPreset = value);
         return y + 70;
     }
 
@@ -248,37 +248,41 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
     private void settingStepper(String label, String value, int x, int y, int w, Runnable minus, Runnable plus) {
         settingBase(label, x, y, w, 61);
         int sx = x + w - 119;
-        segmentChoice("-", sx, y + 17, 31, 27, false, minus);
-        drawRect(sx + 31, y + 17, sx + 88, y + 44, 0xFF171B1E);
-        drawRect(sx + 31, y + 17, sx + 88, y + 18, 0xFF424B51);
-        drawRect(sx + 31, y + 43, sx + 88, y + 44, 0xFF424B51);
+        int sy = y + 17;
+        roundedOutline(sx, sy, 119, 27, 6, 0xFF171B1E, 0xFF424B51);
+        stepperEnd("−", sx, sy, 31, 27, true, minus);
         centeredMono(value, sx + 31, y + 17, 57, 27, 10, TEXT);
-        segmentChoice("+", sx + 88, y + 17, 31, 27, false, plus);
+        stepperEnd("+", sx + 88, sy, 31, 27, false, plus);
+        drawRect(sx + 31, sy + 1, sx + 32, sy + 26, 0xFF424B51);
+        drawRect(sx + 87, sy + 1, sx + 88, sy + 26, 0xFF424B51);
     }
 
     private void settingSegments(String label, String selected, int x, int y, int w, String[] values, String[] captions,
                                  java.util.function.Consumer<String> setter) {
         settingBase(label, x, y, w, 61);
         int total = Math.min(174, Math.max(84, captions.length * 58));
-        int each = total / captions.length;
         int bx = x + w - 13 - total;
+        String[][] choices = new String[captions.length][2];
         for (int i = 0; i < captions.length; i++) {
-            final String value = values[i];
-            segmentChoice(captions[i], bx + i * each, y + 17, i + 1 == captions.length ? total - each * i : each, 27,
-                    value.equalsIgnoreCase(selected), () -> setter.accept(value));
+            choices[i][0] = values[i];
+            choices[i][1] = captions[i];
         }
+        drawSegmentGroup(choices, selected, bx, y + 17, total, 27, setter);
     }
 
     private void settingToggle(String label, boolean on, int x, int y, int w, Runnable action) {
         settingBase(label, x, y, w, 61);
         int bx = x + w - 83, by = y + 17;
         boolean hover = hovered(bx, by, 70, 27);
-        drawRect(bx, by, bx + 70, by + 27, hover ? CONTROL_HOVER : 0xFF171B1E);
-        outline(bx, by, 70, 27, on ? 0xFF687983 : 0xFF424B51);
-        drawRect(bx + 8, by + 8, bx + 30, by + 18, 0xFF101315);
-        outline(bx + 8, by + 8, 22, 10, 0xFF4C565D);
-        drawRect(on ? bx + 23 : bx + 10, by + 10, on ? bx + 28 : bx + 16, by + 16, on ? START : 0xFF66727A);
-        centeredText(on ? "表示" : "非表示", bx + 33, by, 37, 27, 9, on ? TEXT_STRONG : TEXT_MUTED, false);
+        roundedOutline(bx, by, 70, 27, 6, hover ? CONTROL_HOVER : 0xFF171B1E,
+                on ? 0xFF687983 : 0xFF424B51);
+        int trackX = bx + 8, trackY = by + 6;
+        roundedOutline(trackX, trackY, 27, 15, 8, on ? 0xFF275F9F : 0xFF252E35,
+                on ? 0xFF4F86C7 : 0xFF44505C);
+        roundedRect(on ? trackX + 14 : trackX + 3, trackY + 3, 9, 9, 5,
+                on ? 0xFFF3F6F8 : 0xFFA6B0B8);
+        centeredText(on ? "表示" : "非表示", bx + 37, by, 31, 27, 9,
+                on ? TEXT_STRONG : TEXT_MUTED, false);
         hit(bx, by, 70, 27, action);
     }
 
@@ -292,10 +296,9 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
     private void settingColor(String label, String value, int x, int y, int w, java.util.function.Consumer<String> setter) {
         settingBase(label, x, y, w, 54);
         int bx = x + w - 118, by = y + 12;
-        drawRect(bx, by, bx + 29, by + 29, rgb(value, 0xFFFFFFFF));
-        outline(bx, by, 29, 29, 0xFF59636A);
-        drawRect(bx + 29, by, bx + 105, by + 29, 0xFF121517);
-        outline(bx + 29, by, 76, 29, 0xFF424B51);
+        roundedOutline(bx, by, 105, 29, 6, 0xFF121517, 0xFF4B565F);
+        roundedRect(bx + 3, by + 3, 23, 23, 4, rgb(value, 0xFFFFFFFF));
+        drawRect(bx + 28, by + 1, bx + 29, by + 28, 0xFF424B51);
         centeredMono(value.toUpperCase(Locale.ROOT), bx + 29, by, 76, 29, 9, TEXT);
         hit(bx, by, 105, 29, () -> mc.displayGuiScreen(new GuiAstTextPrompt(this, label + "の色", "#RRGGBB", value, entered -> {
             String normalized = entered.startsWith("#") ? entered : "#" + entered;
@@ -304,12 +307,44 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
         })));
     }
 
-    private void segmentChoice(String caption, int x, int y, int w, int h, boolean selected, Runnable action) {
+    private void stepperEnd(String caption, int x, int y, int w, int h, boolean left, Runnable action) {
         boolean hover = hovered(x, y, w, h);
-        drawRect(x, y, x + w, y + h, selected ? 0xFF263037 : hover ? CONTROL_HOVER : 0xFF171B1E);
-        outline(x, y, w, h, selected ? 0xFF687983 : 0xFF424B51);
-        centeredText(caption, x, y, w, h, 9, selected ? TEXT_STRONG : TEXT_MUTED, false);
+        if (hover) {
+            roundedRect(x + 1, y + 1, w - 2, h - 2, 5, CONTROL_HOVER);
+            if (left) drawRect(x + 8, y + 1, x + w, y + h - 1, CONTROL_HOVER);
+            else drawRect(x, y + 1, x + w - 8, y + h - 1, CONTROL_HOVER);
+        }
+        centeredText(caption, x, y, w, h, 10, hover ? TEXT_STRONG : TEXT_MUTED, false);
         hit(x, y, w, h, action);
+    }
+
+    private void drawSegmentGroup(String[][] choices, String selected, int x, int y, int w, int h,
+                                  java.util.function.Consumer<String> setter) {
+        roundedOutline(x, y, w, h, 6, 0xFF171B1E, 0xFF424B51);
+        int each = w / choices.length;
+        for (int i = 0; i < choices.length; i++) {
+            final String value = choices[i][0];
+            int cellX = x + i * each;
+            int cellW = i + 1 == choices.length ? w - each * i : each;
+            boolean active = value.equalsIgnoreCase(selected);
+            boolean hover = hovered(cellX, y, cellW, h);
+            if (active || hover) drawSegmentFill(cellX, y, cellW, h, i, choices.length,
+                    active ? 0xFF263A4D : CONTROL_HOVER);
+            if (i > 0) drawRect(cellX, y + 1, cellX + 1, y + h - 1, 0xFF424B51);
+            centeredText(choices[i][1], cellX, y, cellW, h, 9,
+                    active ? TEXT_STRONG : TEXT_MUTED, false);
+            hit(cellX, y, cellW, h, () -> setter.accept(value));
+        }
+    }
+
+    private void drawSegmentFill(int x, int y, int w, int h, int index, int count, int color) {
+        if (index == 0 || index == count - 1) {
+            roundedRect(x + 1, y + 1, w - 2, h - 2, 5, color);
+            if (index == 0 && count > 1) drawRect(x + 7, y + 1, x + w, y + h - 1, color);
+            if (index == count - 1 && count > 1) drawRect(x, y + 1, x + w - 7, y + h - 1, color);
+        } else {
+            drawRect(x, y + 1, x + w, y + h - 1, color);
+        }
     }
 
     private void drawPreview(int x, int y) {
