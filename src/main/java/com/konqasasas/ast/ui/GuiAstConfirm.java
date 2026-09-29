@@ -33,8 +33,8 @@ public final class GuiAstConfirm extends AstUiScreen {
         panel(x, y, w, h);
         dialogHeader(x, y, w, 49);
         strong(title, x + 22, y + 17, 18, TEXT_STRONG);
-        strong(primary, x + 22, y + 72, 13, TEXT_STRONG);
-        text(detail, x + 22, y + 98, 11, TEXT_MUTED);
+        strong(ellipsize(primary, w - 44, 13, true), x + 22, y + 72, 13, TEXT_STRONG);
+        text(ellipsize(detail, w - 44, 11, false), x + 22, y + 98, 11, TEXT_MUTED);
         quietButton("キャンセル", x + w - 206, y + h - 48, 88, 32, () -> mc.displayGuiScreen(parent));
         if (danger) dangerButton(confirmLabel, x + w - 106, y + h - 48, 84, 32);
         else button(confirmLabel, x + w - 106, y + h - 48, 84, 32, this::confirm);

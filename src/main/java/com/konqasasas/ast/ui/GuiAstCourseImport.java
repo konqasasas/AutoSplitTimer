@@ -26,12 +26,12 @@ public final class GuiAstCourseImport extends AstUiScreen {
         strong("コースを読み込む", x + 22, y + 17, 18, TEXT_STRONG);
 
         text("ファイル", x + 22, y + 72, 9, TEXT_FAINT);
-        text(preview.getFileName(), x + 22, y + 91, 10, TEXT_MUTED);
+        text(ellipsize(preview.getFileName(), w - 44, 10, false), x + 22, y + 91, 10, TEXT_MUTED);
 
         text("読み込み後のコース名", x + 22, y + 122, 9, TEXT_MUTED);
         int inputY = y + 140;
-        inputField(x + 22, inputY, w - 44, 34, false);
-        verticallyCenteredText(courseName, x + 33, inputY, 34, 12, TEXT, false);
+        inputField(x + 22, inputY, w - 44, 34, hovered(x + 22, inputY, w - 44, 34));
+        verticallyCenteredText(ellipsize(courseName, w - 66, 12, false), x + 33, inputY, 34, 12, TEXT, false);
         hit(x + 22, inputY, w - 44, 34, () -> mc.displayGuiScreen(new GuiAstTextPrompt(this,
                 "読み込み後のコース名", "既存コースは上書きしません", courseName, value -> courseName = value)));
 

@@ -30,6 +30,7 @@ final class AstIcons {
         float u1 = up ? .5f : 1f;
 
         GlStateManager.enableBlend();
+        GlStateManager.disableAlpha();
         GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
                 GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
@@ -47,6 +48,7 @@ final class AstIcons {
         buffer.pos(x, y, 0).tex(u0, 0).endVertex();
         tessellator.draw();
         GlStateManager.color(1, 1, 1, 1);
+        GlStateManager.enableAlpha();
     }
 
     private static void ensureTexture() {

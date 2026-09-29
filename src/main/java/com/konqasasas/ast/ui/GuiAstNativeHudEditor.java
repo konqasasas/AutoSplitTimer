@@ -23,6 +23,12 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
     public GuiAstNativeHudEditor(GuiScreen parent) { this.parent = parent; }
 
     @Override
+    protected int minimumDesignWidth() { return 960; }
+
+    @Override
+    protected int minimumDesignHeight() { return 540; }
+
+    @Override
     public void initGui() {
         hud = AstCourseManager.get().getHudConfig();
         AstHudConfigUtil.normalizeHud(hud);
@@ -296,7 +302,8 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
     private void settingColor(String label, String value, int x, int y, int w, java.util.function.Consumer<String> setter) {
         settingBase(label, x, y, w, 54);
         int bx = x + w - 118, by = y + 12;
-        roundedOutline(bx, by, 105, 29, 6, 0xFF121517, 0xFF4B565F);
+        roundedOutline(bx, by, 105, 29, 6, hovered(bx, by, 105, 29) ? CONTROL_HOVER : 0xFF121517,
+                hovered(bx, by, 105, 29) ? 0xFF657585 : 0xFF4B565F);
         roundedRect(bx + 3, by + 3, 23, 23, 4, rgb(value, 0xFFFFFFFF));
         drawRect(bx + 28, by + 1, bx + 29, by + 28, 0xFF424B51);
         centeredMono(value.toUpperCase(Locale.ROOT), bx + 29, by, 76, 29, 9, TEXT);
@@ -511,7 +518,6 @@ public final class GuiAstNativeHudEditor extends AstUiScreen {
         if (warning != null) notice(warning);
     }
     private static double round(double value) { return Math.round(value * 100) / 100.0; }
-    private static String cycle(String current, String... values) { int i = Arrays.asList(values).indexOf(current.toUpperCase(Locale.ROOT)); return values[(i + 1 + values.length) % values.length]; }
     private static String label(String key) {
         switch (key) {
             case "courseName": return "コース名"; case "time": return "現在タイム"; case "segment": return "現在スプリット";

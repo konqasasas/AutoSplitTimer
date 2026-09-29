@@ -29,7 +29,7 @@ public final class GuiAstCourseExport extends AstUiScreen {
 
         String name = course == null || course.courseName == null ? "--" : course.courseName;
         text("共有するコース", x + 22, y + 73, 9, TEXT_FAINT);
-        strong(name, x + 22, y + 93, 14, TEXT_STRONG);
+        strong(ellipsize(name, w - 44, 14, true), x + 22, y + 93, 14, TEXT_STRONG);
         text("地点座標を含むため、同じマップ向けのファイルです。", x + 22, y + 120, 10, TEXT_MUTED);
 
         option("コースのみ", "地点と判定範囲を共有", false, x + 22, y + 150, (w - 54) / 2, 58);
@@ -37,7 +37,8 @@ public final class GuiAstCourseExport extends AstUiScreen {
                 x + 32 + (w - 54) / 2, y + 150, (w - 54) / 2, 58);
 
         if (savedFile != null) {
-            text("書き出しました: " + fit(savedFile.getAbsolutePath(), w - 44), x + 22, y + 226, 10, START);
+            text(ellipsize("書き出しました: " + savedFile.getAbsolutePath(), w - 44, 10, false),
+                    x + 22, y + 226, 10, START);
         } else if (busy) {
             text("保存先を選択しています…", x + 22, y + 226, 10, TEXT_MUTED);
         }
@@ -69,14 +70,6 @@ public final class GuiAstCourseExport extends AstUiScreen {
                 file -> { busy = false; savedFile = file; notice("コースを書き出しました"); },
                 message -> { busy = false; notice(message); },
                 () -> busy = false);
-    }
-
-    private String fit(String value, int maxWidth) {
-        if (textWidth(value, 10, false) <= maxWidth) return value;
-        String suffix = "…";
-        int start = 0;
-        while (start < value.length() && textWidth(suffix + value.substring(start), 10, false) > maxWidth) start++;
-        return suffix + value.substring(start);
     }
 
     @Override

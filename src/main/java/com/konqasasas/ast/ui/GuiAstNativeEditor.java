@@ -24,6 +24,12 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     }
 
     @Override
+    protected int minimumDesignWidth() { return 820; }
+
+    @Override
+    protected int minimumDesignHeight() { return 430; }
+
+    @Override
     protected void drawUi(int mouseX, int mouseY, float partialTicks) {
         drawTopbar();
         JsonObject active = active();
@@ -91,7 +97,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         String course = active() == null ? "コース未選択" : string(active(), "name", "コース未選択");
         boolean hover = hovered(177, 0, 190, 44);
         if (hover || courseMenu) drawRect(177, 0, 367, 44, CONTROL);
-        text(fit(course, 137, 12), 192, 14, 12, TEXT);
+        text(ellipsize(course, 137, 12, false), 192, 14, 12, TEXT);
         chevron(344, 18, 8, courseMenu, TEXT_FAINT);
         hit(177, 0, 190, 44, () -> courseMenu = !courseMenu);
         boolean quick = state != null && state.has("quickCourse") && state.get("quickCourse").getAsBoolean();
@@ -123,7 +129,9 @@ public final class GuiAstNativeEditor extends AstUiScreen {
             String name = names.get(i).getAsString();
             int rowY = y + i * 38;
             if (hovered(x, rowY, w, 38)) roundedRect(x + 5, rowY + 3, w - 10, 32, 5, CONTROL_HOVER);
-            text(name, x + 13, rowY + 12, 11, name.equals(current) ? TEXT_STRONG : 0xFFBDC4C8);
+            int nameWidth = name.equals(current) ? w - 75 : w - 26;
+            text(ellipsize(name, nameWidth, 11, false), x + 13, rowY + 12, 11,
+                    name.equals(current) ? TEXT_STRONG : 0xFFBDC4C8);
             if (name.equals(current)) text("使用中", x + w - 47, rowY + 13, 9, START);
             final String selected = name;
             hit(x, rowY, w, 38, () -> { action(request("loadCourse", "name", selected), null); courseMenu = false; openIndex = -1; });
@@ -183,12 +191,14 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         drawRect(x + 44, y + 20, x + 51, y + 27, roleColor);
         verticallyCenteredText(role.toUpperCase(Locale.ROOT), x + 61, y, 48, 10, roleColor, true);
         String name = string(point, "name", "");
-        verticallyCenteredText(name, x + 115, y, 48, 12, 0xFFDCE1E4, false);
         boolean placed = point.get("placed").getAsBoolean();
         String meta = placed ? ("ground".equals(string(point, "detection", "ground")) ? "On Ground" : "AABB")
                 + "  ·  " + point.get("blocks").getAsInt() + "ブロック" : "場所未設定";
         int metaWidth = textWidth(meta, 10, false);
-        verticallyCenteredText(meta, x + w - 76 - metaWidth, y, 48, 10, placed ? 0xFF929BA2 : 0xFFD18A90, false);
+        int metaX = x + w - 76 - metaWidth;
+        verticallyCenteredText(ellipsize(name, Math.max(28, metaX - (x + 115) - 14), 12, false),
+                x + 115, y, 48, 12, 0xFFDCE1E4, false);
+        verticallyCenteredText(meta, metaX, y, 48, 10, placed ? 0xFF929BA2 : 0xFFD18A90, false);
         chevron(x + w - 27, y + 20, 8, open, TEXT_FAINT);
         int index = point.get("index").getAsInt();
         hit(x, y, w, 48, () -> {
@@ -208,8 +218,8 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         }
         text("地点名", x + 70, editorY + 10, 9, TEXT_MUTED);
         int fieldY = editorY + 25;
-        inputField(x + 70, fieldY, 180, 30, false);
-        text(name, x + 79, fieldY + 8, 11, TEXT);
+        inputField(x + 70, fieldY, 180, 30, hovered(x + 70, fieldY, 180, 30));
+        text(ellipsize(name, 162, 11, false), x + 79, fieldY + 8, 11, TEXT);
         hit(x + 70, fieldY, 180, 30, () -> mc.displayGuiScreen(new GuiAstTextPrompt(this, "地点名を変更", "新しい地点名", name,
                 value -> action(request("updatePoint", "index", index, "name", value), "地点名を変更しました"))));
         text("判定方式", x + 268, editorY + 10, 9, TEXT_MUTED);
@@ -350,13 +360,6 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         }
         chevron(x + 5, y + 9, 12, up, hover ? TEXT_STRONG : 0xFFADB5BB);
         hit(x, y, 22, 30, action);
-    }
-
-    private String fit(String value, int maxWidth, float size) {
-        if (textWidth(value, size, false) <= maxWidth) return value;
-        int length = value.length();
-        while (length > 0 && textWidth(value.substring(0, length) + "...", size, false) > maxWidth) length--;
-        return value.substring(0, length) + "...";
     }
 
     private void promptCreate() {

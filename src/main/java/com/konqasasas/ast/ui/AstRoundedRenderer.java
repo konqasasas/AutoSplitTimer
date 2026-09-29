@@ -28,7 +28,7 @@ final class AstRoundedRenderer {
         bottom = pixelAligned(bottom);
         float maxRadius = Math.min(right - left, bottom - top) / 2f;
         radius = Math.max(0f, Math.min(pixelAlignedLength(radius), maxRadius));
-        if (radius < 1f / AstUiScreen.DESIGN_ZOOM) {
+        if (radius < 1f / AstUiScreen.pixelScale()) {
             solidRect(left, top, right, bottom, color);
             return;
         }
@@ -137,10 +137,12 @@ final class AstRoundedRenderer {
     }
 
     private static float pixelAligned(float value) {
-        return Math.round(value * AstUiScreen.DESIGN_ZOOM) / AstUiScreen.DESIGN_ZOOM;
+        float scale = AstUiScreen.pixelScale();
+        return Math.round(value * scale) / scale;
     }
 
     private static float pixelAlignedLength(float value) {
-        return Math.max(0, Math.round(value * AstUiScreen.DESIGN_ZOOM) / AstUiScreen.DESIGN_ZOOM);
+        float scale = AstUiScreen.pixelScale();
+        return Math.max(0, Math.round(value * scale) / scale);
     }
 }

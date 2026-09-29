@@ -14,6 +14,7 @@ import java.util.List;
 public abstract class AstUiScreen extends GuiScreen {
     /** UI density kept stable across Minecraft GUI scales. */
     static final float DESIGN_ZOOM = 1.25f;
+    private static float activePixelScale = DESIGN_ZOOM;
     private static final float UI_FONT_SCALE = 1.08f;
     protected static final int CANVAS = 0xFF0E1115;
     protected static final int TOPBAR = 0xFF101419;
@@ -52,7 +53,16 @@ public abstract class AstUiScreen extends GuiScreen {
         int minecraftHeight = height;
         int minecraftScale = Math.max(1, new ScaledResolution(mc).getScaleFactor());
         float designToMinecraftScale = DESIGN_ZOOM / minecraftScale;
+        // Keep dense editor screens usable in small windows. Normal-sized
+        // windows retain the exact design scale; only undersized canvases are
+        // reduced enough to fit their minimum layout dimensions.
+        float widthFit = minecraftWidth / (float) Math.max(1, minimumDesignWidth());
+        float heightFit = minecraftHeight / (float) Math.max(1, minimumDesignHeight());
+        designToMinecraftScale = Math.min(designToMinecraftScale, Math.min(widthFit, heightFit));
+        designToMinecraftScale = Math.max(0.1f, designToMinecraftScale);
         inputToDesignScale = 1f / designToMinecraftScale;
+        float previousPixelScale = activePixelScale;
+        activePixelScale = designToMinecraftScale * minecraftScale;
 
         // GuiScreen coordinates normally grow with Minecraft's GUI Scale. The AST
         // interface was designed in screen pixels (like the former browser UI), so
@@ -79,10 +89,15 @@ public abstract class AstUiScreen extends GuiScreen {
             GlStateManager.popMatrix();
             width = minecraftWidth;
             height = minecraftHeight;
+            activePixelScale = previousPixelScale;
         }
     }
 
     protected abstract void drawUi(int mouseX, int mouseY, float partialTicks);
+
+    protected int minimumDesignWidth() { return 640; }
+
+    protected int minimumDesignHeight() { return 400; }
 
     protected void hit(int x, int y, int w, int h, Runnable action) {
         if (clipActive) {
@@ -128,7 +143,7 @@ public abstract class AstUiScreen extends GuiScreen {
 
     protected void roundedOutline(int x, int y, int w, int h, int radius, int fill, int border) {
         AstRoundedRenderer.draw(x, y, x + w, y + h, radius, border);
-        float inset = 1f / DESIGN_ZOOM;
+        float inset = 1f / pixelScale();
         if (w > inset * 2 && h > inset * 2) {
             AstRoundedRenderer.draw(x + inset, y + inset, x + w - inset, y + h - inset,
                     Math.max(0, radius - inset), fill);
@@ -188,6 +203,17 @@ public abstract class AstUiScreen extends GuiScreen {
 
     protected int monoWidth(String value, float size) {
         return AstFonts.mono().width(value, scaledFontSize(size));
+    }
+
+    protected String ellipsize(String value, int maxWidth, float size, boolean bold) {
+        if (value == null) return "";
+        if (maxWidth <= 0) return "";
+        if (textWidth(value, size, bold) <= maxWidth) return value;
+        String suffix = "…";
+        if (textWidth(suffix, size, bold) > maxWidth) return "";
+        int length = value.length();
+        while (length > 0 && textWidth(value.substring(0, length) + suffix, size, bold) > maxWidth) length--;
+        return value.substring(0, length) + suffix;
     }
 
     protected void centeredText(String value, int x, int y, int w, int h, float size, int color, boolean bold) {
@@ -297,12 +323,14 @@ public abstract class AstUiScreen extends GuiScreen {
     }
 
     private static float snap(float value) {
-        return Math.round(value * DESIGN_ZOOM) / DESIGN_ZOOM;
+        return Math.round(value * pixelScale()) / pixelScale();
     }
 
     private static float snapHalf(float value) {
-        return Math.round(value * DESIGN_ZOOM * 2f) / (DESIGN_ZOOM * 2f);
+        return Math.round(value * pixelScale() * 2f) / (pixelScale() * 2f);
     }
+
+    static float pixelScale() { return Math.max(0.1f, activePixelScale); }
 
     protected void button(String label, int x, int y, int w, int h, Runnable action) {
         boolean hover = hovered(x, y, w, h);
@@ -334,13 +362,15 @@ public abstract class AstUiScreen extends GuiScreen {
     }
 
     private void drawNotice(String message) {
-        int w = Math.max(180, textWidth(message, 11, false) + 34);
+        int maxTextWidth = Math.max(80, width - 66);
+        String shown = ellipsize(message, maxTextWidth, 11, false);
+        int w = Math.min(width - 32, Math.max(180, textWidth(shown, 11, false) + 34));
         int x = width - w - 16;
         int y = height - 42;
         softShadow(x, y, w, 30, 7);
         roundedOutline(x, y, w, 30, 7, 0xF01A2027, LINE_CONTROL);
         drawRect(x + 10, y + 12, x + 16, y + 18, START);
-        text(message, x + 23, y + 8, 11, TEXT);
+        text(shown, x + 23, y + 8, 11, TEXT);
     }
 
     @Override
