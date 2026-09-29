@@ -34,7 +34,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         quietButton("コース設定", left + 145, top - 5, 104, 28, () -> toolsMenu = !toolsMenu);
         chevron(left + 235, top + 6, 7, toolsMenu, TEXT_FAINT);
         int lapButtonX = left + workspaceWidth - 198;
-        button("+ 現在地をラップとして追加", lapButtonX, top - 5, 198, 34,
+        primaryButton("+ 現在地をラップとして追加", lapButtonX, top - 5, 198, 34,
                 () -> action(request("addLapCurrent"), "現在地にラップを追加しました"));
 
         int listTop = top + 43;
@@ -66,11 +66,11 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     }
 
     private void drawListScrollbar(int x, int y, int h, int total, int visible, int maxScroll) {
-        drawRect(x, y, x + 3, y + h, 0xFF1A1E21);
+        roundedRect(x, y, 3, h, 2, 0xFF181E24);
         int thumb = Math.max(24, Math.min(h, Math.round(h * (visible / (float) Math.max(visible, total)))));
         int travel = h - thumb;
         int thumbY = y + Math.round(travel * (scroll / (float) maxScroll));
-        drawRect(x, thumbY, x + 3, thumbY + thumb, 0xFF59636A);
+        roundedRect(x, thumbY, 3, thumb, 2, 0xFF617181);
     }
 
     private void drawTopbar() {
@@ -102,7 +102,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         int cx = width / 2;
         strong("コースがありません", cx - 86, height / 2 - 32, 18, TEXT_STRONG);
         text("新しいコースを作成すると、現在地にSTARTが置かれます", cx - 174, height / 2 - 4, 11, TEXT_MUTED);
-        button("新規コース", cx - 122, height / 2 + 28, 112, 34, this::promptCreate);
+        primaryButton("新規コース", cx - 122, height / 2 + 28, 112, 34, this::promptCreate);
         quietButton("コースを読み込む", cx + 2, height / 2 + 28, 120, 34, this::chooseImport);
     }
 
@@ -115,7 +115,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         for (int i = 0; i < names.size(); i++) {
             String name = names.get(i).getAsString();
             int rowY = y + i * 38;
-            if (hovered(x, rowY, w, 38)) drawRect(x + 1, rowY + 1, x + w - 1, rowY + 38, CONTROL_HOVER);
+            if (hovered(x, rowY, w, 38)) roundedRect(x + 5, rowY + 3, w - 10, 32, 5, CONTROL_HOVER);
             text(name, x + 13, rowY + 12, 11, name.equals(current) ? TEXT_STRONG : 0xFFBDC4C8);
             if (name.equals(current)) text("使用中", x + w - 47, rowY + 13, 9, START);
             final String selected = name;
@@ -170,7 +170,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     private void drawPoint(JsonObject point, int position, int total, int x, int y, int w, int h, boolean open) {
         String role = string(point, "role", "lap");
         int roleColor = "start".equals(role) ? START : "goal".equals(role) ? GOAL : LAP;
-        drawRect(x, y, x + w, y + h, open ? 0xFF1C2024 : SURFACE);
+        drawRect(x, y, x + w, y + h, open ? CONTROL_ACTIVE : SURFACE);
         outline(x, y, w, h, LINE_STRONG);
         verticallyCenteredMono(String.format(Locale.ROOT, "%02d", position + 1), x + 15, y, 48, 11, 0xFF727C84);
         drawRect(x + 44, y + 20, x + 51, y + 27, roleColor);
@@ -198,8 +198,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
         }
         text("地点名", x + 70, editorY + 10, 9, TEXT_MUTED);
         int fieldY = editorY + 25;
-        drawRect(x + 70, fieldY, x + 250, fieldY + 30, 0xFF191D20);
-        outline(x + 70, fieldY, 180, 30, 0xFF424A50);
+        inputField(x + 70, fieldY, 180, 30, false);
         text(name, x + 79, fieldY + 8, 11, TEXT);
         hit(x + 70, fieldY, 180, 30, () -> mc.displayGuiScreen(new GuiAstTextPrompt(this, "地点名を変更", "新しい地点名", name,
                 value -> action(request("updatePoint", "index", index, "name", value), "地点名を変更しました"))));
@@ -231,8 +230,8 @@ public final class GuiAstNativeEditor extends AstUiScreen {
 
     private void segmentButton(String label, int x, int y, int w, int h, boolean selected, Runnable action) {
         boolean hover = hovered(x, y, w, h);
-        drawRect(x, y, x + w, y + h, selected ? 0xFF2A3136 : hover ? CONTROL : 0xFF191D20);
-        outline(x, y, w, h, selected ? 0xFF65727B : 0xFF424A50);
+        roundedOutline(x, y, w, h, 5, selected ? 0xFF24364A : hover ? CONTROL_HOVER : CONTROL,
+                selected ? ACCENT : LINE_CONTROL);
         centeredText(label, x, y, w, h, 10, selected ? TEXT_STRONG : 0xFF89939A, false);
         hit(x, y, w, h, action);
     }
@@ -240,8 +239,7 @@ public final class GuiAstNativeEditor extends AstUiScreen {
     private void directionButton(int x, int y, boolean up, Runnable action) {
         boolean hover = hovered(x, y, 22, 30);
         if (hover) {
-            drawRect(x, y, x + 22, y + 30, CONTROL);
-            outline(x, y, 22, 30, LINE);
+            roundedOutline(x, y, 22, 30, 5, CONTROL_HOVER, LINE_CONTROL);
         }
         chevron(x + 5, y + 9, 12, up, hover ? TEXT_STRONG : 0xFFADB5BB);
         hit(x, y, 22, 30, action);

@@ -10,27 +10,31 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared angular visual language for the dependency-free native interface. */
+/** Shared visual language for the dependency-free native interface. */
 public abstract class AstUiScreen extends GuiScreen {
     /** UI density kept stable across Minecraft GUI scales. */
     static final float DESIGN_ZOOM = 1.25f;
     private static final float UI_FONT_SCALE = 1.08f;
-    protected static final int CANVAS = 0xFF101214;
-    protected static final int TOPBAR = 0xFF141719;
-    protected static final int SURFACE = 0xFF171A1D;
-    protected static final int SURFACE_SUBTLE = 0xFF131619;
-    protected static final int CONTROL = 0xFF20262B;
-    protected static final int CONTROL_HOVER = 0xFF293139;
-    protected static final int LINE = 0xFF30353A;
-    protected static final int LINE_STRONG = 0xFF3A4045;
-    protected static final int TEXT = 0xFFDFe3E6;
-    protected static final int TEXT_STRONG = 0xFFF2F4F5;
-    protected static final int TEXT_MUTED = 0xFF969FA6;
-    protected static final int TEXT_FAINT = 0xFF747E86;
-    protected static final int START = 0xFF58B96C;
-    protected static final int LAP = 0xFFC8A348;
-    protected static final int GOAL = 0xFFD65C63;
-    protected static final int DANGER = 0xFFD98288;
+    protected static final int CANVAS = 0xFF0E1115;
+    protected static final int TOPBAR = 0xFF101419;
+    protected static final int SURFACE = 0xFF151A20;
+    protected static final int SURFACE_SUBTLE = 0xFF12171C;
+    protected static final int CONTROL = 0xFF1A2027;
+    protected static final int CONTROL_HOVER = 0xFF222A33;
+    protected static final int CONTROL_ACTIVE = 0xFF202832;
+    protected static final int LINE = 0xFF2B343F;
+    protected static final int LINE_STRONG = 0xFF3B4754;
+    protected static final int LINE_CONTROL = 0xFF526170;
+    protected static final int TEXT = 0xFFDCE3E8;
+    protected static final int TEXT_STRONG = 0xFFEEF2F5;
+    protected static final int TEXT_MUTED = 0xFF98A4AF;
+    protected static final int TEXT_FAINT = 0xFF6F7B86;
+    protected static final int ACCENT = 0xFF6EA8FE;
+    protected static final int ACCENT_HOVER = 0xFF8BB8FF;
+    protected static final int START = 0xFF6FCF87;
+    protected static final int LAP = 0xFFD2AA4F;
+    protected static final int GOAL = 0xFFE26D74;
+    protected static final int DANGER = 0xFFE26D74;
 
     private final List<Hit> hits = new ArrayList<>();
     protected int mouseX;
@@ -113,8 +117,8 @@ public abstract class AstUiScreen extends GuiScreen {
     }
 
     protected void panel(int x, int y, int w, int h) {
-        drawRect(x, y, x + w, y + h, SURFACE);
-        outline(x, y, w, h, LINE_STRONG);
+        softShadow(x, y, w, h, 8);
+        roundedOutline(x, y, w, h, 8, SURFACE, LINE);
     }
 
     protected void outline(int x, int y, int w, int h, int color) {
@@ -122,6 +126,39 @@ public abstract class AstUiScreen extends GuiScreen {
         drawRect(x, y + h - 1, x + w, y + h, color);
         drawRect(x, y, x + 1, y + h, color);
         drawRect(x + w - 1, y, x + w, y + h, color);
+    }
+
+    /** Pixel-stable rounded fill; avoids texture filtering blur at Minecraft GUI scales. */
+    protected void roundedRect(int x, int y, int w, int h, int radius, int color) {
+        if (w <= 0 || h <= 0) return;
+        int r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
+        if (r == 0) {
+            drawRect(x, y, x + w, y + h, color);
+            return;
+        }
+        drawRect(x, y + r, x + w, y + h - r, color);
+        drawRect(x + r, y, x + w - r, y + h, color);
+        for (int row = 0; row < r; row++) {
+            double dy = r - row - 0.5;
+            int inset = (int) Math.ceil(r - Math.sqrt(Math.max(0.0, r * r - dy * dy)));
+            drawRect(x + inset, y + row, x + w - inset, y + row + 1, color);
+            drawRect(x + inset, y + h - row - 1, x + w - inset, y + h - row, color);
+        }
+    }
+
+    protected void roundedOutline(int x, int y, int w, int h, int radius, int fill, int border) {
+        roundedRect(x, y, w, h, radius, border);
+        if (w > 2 && h > 2) roundedRect(x + 1, y + 1, w - 2, h - 2, Math.max(0, radius - 1), fill);
+    }
+
+    protected void inputField(int x, int y, int w, int h, boolean focused) {
+        roundedOutline(x, y, w, h, 6, 0xFF12171C, focused ? ACCENT : LINE_CONTROL);
+    }
+
+    private void softShadow(int x, int y, int w, int h, int radius) {
+        roundedRect(x - 3, y + 4, w + 6, h + 3, radius + 3, 0x18000000);
+        roundedRect(x - 2, y + 3, w + 4, h + 2, radius + 2, 0x22000000);
+        roundedRect(x - 1, y + 2, w + 2, h + 1, radius + 1, 0x2B000000);
     }
 
     /** Font-independent disclosure mark, so missing Unicode glyphs never show boxes. */
@@ -278,19 +315,26 @@ public abstract class AstUiScreen extends GuiScreen {
 
     protected void button(String label, int x, int y, int w, int h, Runnable action) {
         boolean hover = hovered(x, y, w, h);
-        drawRect(x, y, x + w, y + h, hover ? CONTROL_HOVER : CONTROL);
-        outline(x, y, w, h, hover ? 0xFF71808B : 0xFF52606B);
+        roundedOutline(x, y, w, h, 6, hover ? CONTROL_HOVER : CONTROL,
+                hover ? 0xFF657585 : LINE_CONTROL);
         centeredText(label, x, y, w, h, 11, hover ? TEXT_STRONG : TEXT, false);
+        hit(x, y, w, h, action);
+    }
+
+    protected void primaryButton(String label, int x, int y, int w, int h, Runnable action) {
+        boolean hover = hovered(x, y, w, h);
+        roundedOutline(x, y, w, h, 6, hover ? 0xFF3976C9 : 0xFF2E66B8,
+                hover ? ACCENT_HOVER : ACCENT);
+        centeredText(label, x, y, w, h, 11, TEXT_STRONG, true);
         hit(x, y, w, h, action);
     }
 
     protected void quietButton(String label, int x, int y, int w, int h, Runnable action) {
         boolean hover = hovered(x, y, w, h);
         if (hover) {
-            drawRect(x, y, x + w, y + h, CONTROL);
-            outline(x, y, w, h, LINE);
+            roundedOutline(x, y, w, h, 6, CONTROL, LINE);
         }
-        centeredText(label, x, y, w, h, 11, hover ? TEXT_STRONG : 0xFFADB5BB, false);
+        centeredText(label, x, y, w, h, 11, hover ? TEXT_STRONG : TEXT_MUTED, false);
         hit(x, y, w, h, action);
     }
 
@@ -303,8 +347,8 @@ public abstract class AstUiScreen extends GuiScreen {
         int w = Math.max(180, textWidth(message, 11, false) + 34);
         int x = width - w - 16;
         int y = height - 42;
-        drawRect(x, y, x + w, y + 30, 0xF0202529);
-        outline(x, y, w, 30, 0xFF465159);
+        softShadow(x, y, w, 30, 7);
+        roundedOutline(x, y, w, 30, 7, 0xF01A2027, LINE_CONTROL);
         drawRect(x + 10, y + 12, x + 16, y + 18, START);
         text(message, x + 23, y + 8, 11, TEXT);
     }
