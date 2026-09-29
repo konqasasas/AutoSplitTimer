@@ -128,72 +128,18 @@ public abstract class AstUiScreen extends GuiScreen {
         drawRect(x + w - 1, y, x + w, y + h, color);
     }
 
-    /** Rounded fill using the same quarter-circle fan technique as CyvForge Keystrokes. */
+    /** Rounded fill backed by a supersampled alpha mask. */
     protected void roundedRect(int x, int y, int w, int h, int radius, int color) {
-        if (w <= 0 || h <= 0) return;
-        float r = Math.max(0, Math.min(radius, Math.min(w, h) / 2f));
-        if (r == 0) {
-            drawRect(x, y, x + w, y + h, color);
-            return;
-        }
-        float left = x, top = y, right = x + w, bottom = y + h;
-        beginShape(color);
-
-        GL11.glBegin(GL11.GL_TRIANGLE_STRIP);
-        GL11.glVertex2f(left + r, top);
-        GL11.glVertex2f(left + r, bottom);
-        GL11.glVertex2f(right - r, top);
-        GL11.glVertex2f(right - r, bottom);
-        GL11.glEnd();
-
-        GL11.glBegin(GL11.GL_TRIANGLE_STRIP);
-        GL11.glVertex2f(left, top + r);
-        GL11.glVertex2f(right, top + r);
-        GL11.glVertex2f(left, bottom - r);
-        GL11.glVertex2f(right, bottom - r);
-        GL11.glEnd();
-
-        roundedCorner(right - r, top + r, r, -90);
-        roundedCorner(left + r, top + r, r, -180);
-        roundedCorner(left + r, bottom - r, r, 90);
-        roundedCorner(right - r, bottom - r, r, 0);
-        endShape();
-    }
-
-    private void roundedCorner(float centerX, float centerY, float radius, int startDegrees) {
-        final int segments = 18;
-        GL11.glBegin(GL11.GL_TRIANGLE_FAN);
-        GL11.glVertex2f(centerX, centerY);
-        for (int index = 0; index <= segments; index++) {
-            double angle = Math.toRadians(startDegrees + index * (90.0 / segments));
-            GL11.glVertex2f(centerX + radius * (float) Math.cos(angle),
-                    centerY + radius * (float) Math.sin(angle));
-        }
-        GL11.glEnd();
-    }
-
-    private void beginShape(int color) {
-        float alpha = (color >>> 24 & 0xFF) / 255f;
-        float red = (color >>> 16 & 0xFF) / 255f;
-        float green = (color >>> 8 & 0xFF) / 255f;
-        float blue = (color & 0xFF) / 255f;
-        GlStateManager.disableTexture2D();
-        GlStateManager.enableBlend();
-        GlStateManager.disableCull();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        GlStateManager.color(red, green, blue, alpha);
-    }
-
-    private void endShape() {
-        GlStateManager.color(1f, 1f, 1f, 1f);
-        GlStateManager.enableCull();
-        GlStateManager.disableBlend();
-        GlStateManager.enableTexture2D();
+        AstRoundedRenderer.draw(x, y, x + w, y + h, radius, color);
     }
 
     protected void roundedOutline(int x, int y, int w, int h, int radius, int fill, int border) {
-        roundedRect(x, y, w, h, radius, border);
-        if (w > 2 && h > 2) roundedRect(x + 1, y + 1, w - 2, h - 2, Math.max(0, radius - 1), fill);
+        AstRoundedRenderer.draw(x, y, x + w, y + h, radius, border);
+        float inset = 1f / DESIGN_ZOOM;
+        if (w > inset * 2 && h > inset * 2) {
+            AstRoundedRenderer.draw(x + inset, y + inset, x + w - inset, y + h - inset,
+                    Math.max(0, radius - inset), fill);
+        }
     }
 
     protected void inputField(int x, int y, int w, int h, boolean focused) {
