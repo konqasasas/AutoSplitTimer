@@ -18,6 +18,8 @@ Minecraft Java Edition 1.12.2向けのクライアント側タイマーMODです
 
 ## 導入
 
+ダウンロードは[こちら](https://www.curseforge.com/minecraft/mc-mods/autosplit-timer-mod/files/all?page=1&pageSize=20&showAlphaFiles=hide)からお願いします。
+
 1. Minecraft Forge 1.12.2を導入します。
 2. `autosplittimer-1.0.0.jar`をMinecraftの`mods`フォルダーへ入れます。
 3. ワールドに入り、`Y`キーで設定画面を開きます。
