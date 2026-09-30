@@ -8,8 +8,6 @@ Minecraft Java Edition 1.12.2向けのクライアント側タイマーMODです
 - Minecraft Forge 14.23.5.2859
 - Java 8
 
-MCEFなどの追加MODは必要ありません。
-
 ## 導入
 
 1. Minecraft Forge 1.12.2を導入します。
