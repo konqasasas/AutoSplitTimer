@@ -55,6 +55,7 @@ public final class AstQuickCourseEditor {
         course.stats.bestSegmentsTicks.add(null);
         course.stats.bestSplitTicks.add(null);
         course.stats.pb.segmentTicks.add(null);
+        course.stats.pb.splitTicks.add(null);
         placeAtPlayer(course.segments.get(0), mc.player);
 
         manager.activateTemporaryCourse(course);

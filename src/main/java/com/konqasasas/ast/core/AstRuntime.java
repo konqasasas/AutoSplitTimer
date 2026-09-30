@@ -23,6 +23,7 @@ public final class AstRuntime {
     private int nextIndex = Integer.MAX_VALUE;
     private int lastSplitCumulative = 0;
     private Integer lastCompletedSegmentTicks = null;
+    private AstData.CourseFile attemptCourse = null;
 
     // per segment inside tracking (index -> insidePrev)
     private final Map<Integer, Boolean> insidePrev = new HashMap<>();
@@ -103,6 +104,14 @@ public final class AstRuntime {
         state = State.IDLE;
     }
 
+    /** User-requested reset: keep every trustworthy segment result before discarding the run. */
+    public synchronized void resetAttemptAndSaveBests() {
+        if (state == State.RUNNING && attemptCourse != null && commitValidBestSegments(attemptCourse)) {
+            AstCourseManager.get().saveActiveCourseSafe();
+        }
+        forceResetToIdle();
+    }
+
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent e) {
         if (e.phase != TickEvent.Phase.END) return;
@@ -172,9 +181,11 @@ public final class AstRuntime {
                 if (order.isEmpty()) {
                     // no non-start segments: treat as nothing
                 } else {
-                    if (hit >= nextIndex) {
+                    int expectedPos = order.indexOf(nextIndex);
+                    int hitPos = order.indexOf(hit);
+                    if (expectedPos >= 0 && hitPos >= expectedPos) {
                         // record this split
-                        recordSplit(course, hit);
+                        recordSplit(course, hit, hitPos > expectedPos);
 
                         // advance nextIndex to the next higher existing index
                         nextIndex = AstUtil.nextExistingIndex(order, hit);
@@ -193,6 +204,11 @@ public final class AstRuntime {
     }
 
     private void startNewAttempt(AstData.CourseFile course) {
+        // Re-entering START abandons the current run, but valid Gold segments survive.
+        if (state == State.RUNNING && attemptCourse == course) {
+            commitValidBestSegments(course);
+        }
+
         // increment attempt count (global)
         course.stats.attemptCount += 1;
         AstCourseManager.get().saveActiveCourseSafe();
@@ -204,6 +220,7 @@ public final class AstRuntime {
         // reset runtime state
         resetRuntimeOnly(false);
         state = State.RUNNING;
+        attemptCourse = course;
         elapsedTicks = 0;
         lastSplitCumulative = 0;
         lastCompletedSegmentTicks = null;
@@ -218,32 +235,35 @@ public final class AstRuntime {
         nextIndex = order.isEmpty() ? Integer.MAX_VALUE : order.get(0);
     }
 
-    private void recordSplit(AstData.CourseFile course, int hitIndex) {
+    private void recordSplit(AstData.CourseFile course, int hitIndex, boolean skipped) {
         if (usedSegments.contains(hitIndex)) return;
         usedSegments.add(hitIndex);
 
         int cumulative = getElapsedTicks();
         int segTicks = cumulative - lastSplitCumulative;
         lastSplitCumulative = cumulative;
-        lastCompletedSegmentTicks = segTicks;
-
-        runSegmentTicks.put(hitIndex, segTicks);
         runSplitCumulative.put(hitIndex, cumulative);
 
-        // Gold preview: compare vs stored bests, but DO NOT write to stats unless the run finishes.
+        // A jump over one or more split boundaries has no trustworthy segment duration.
+        // The landing split still becomes the new anchor, so the following segment is valid.
+        if (skipped) {
+            lastCompletedSegmentTicks = null;
+            return;
+        }
+
+        lastCompletedSegmentTicks = segTicks;
+        runSegmentTicks.put(hitIndex, segTicks);
+
+        // Gold preview uses the attempt-start baseline. Persistence happens on
+        // Finish, explicit Reset, or START re-entry.
         try {
             List<Integer> order = AstUtil.sortedNonStartIndices(course);
             int pos = order.indexOf(hitIndex);
             if (pos >= 0) {
                 java.util.List<Integer> bestSegList = (baselineBestSeg != null) ? baselineBestSeg : course.stats.bestSegmentsTicks;
                 Integer bestSeg = (bestSegList != null && pos < bestSegList.size()) ? bestSegList.get(pos) : null;
-                if (bestSeg != null && segTicks < bestSeg) {
+                if (bestSeg == null || segTicks < bestSeg) {
                     goldSegmentsThisRun.add(hitIndex);
-                }
-                java.util.List<Integer> bestSplitList = (baselineBestSplit != null) ? baselineBestSplit : course.stats.bestSplitTicks;
-                Integer bestSplit = (bestSplitList != null && pos < bestSplitList.size()) ? bestSplitList.get(pos) : null;
-                if (bestSplit != null && cumulative < bestSplit) {
-                    goldSplitsThisRun.add(hitIndex);
                 }
             }
         } catch (Exception ignored) {
@@ -273,18 +293,11 @@ public final class AstRuntime {
         if (pb.totalTicks == null || total < pb.totalTicks) {
             pb.totalTicks = total;
             pb.segmentTicks = segTicksList;
+            pb.splitTicks = splitCumList;
         }
 
-        // BestSegments update (and gold)
-        for (int i = 0; i < order.size(); i++) {
-            Integer segTicks = segTicksList.get(i);
-            if (segTicks == null) continue; // skipped
-            Integer best = course.stats.bestSegmentsTicks.get(i);
-            if (best == null || segTicks < best) {
-                course.stats.bestSegmentsTicks.set(i, segTicks);
-                goldSegmentsThisRun.add(order.get(i));
-            }
-        }
+        // Best Segments are independent of PB and cumulative fastest Split records.
+        commitValidBestSegments(course);
 
         // BestSplit update
         for (int i = 0; i < order.size(); i++) {
@@ -300,6 +313,24 @@ public final class AstRuntime {
         AstCourseManager.get().saveActiveCourseSafe();
     }
 
+    /** Persist only direct, unskipped segment durations from this attempt. */
+    private boolean commitValidBestSegments(AstData.CourseFile course) {
+        if (course == null || course.stats == null) return false;
+        List<Integer> order = AstUtil.sortedNonStartIndices(course);
+        boolean changed = false;
+        for (int i = 0; i < order.size(); i++) {
+            Integer segmentTicks = runSegmentTicks.get(order.get(i));
+            if (segmentTicks == null) continue;
+            Integer best = course.stats.bestSegmentsTicks.get(i);
+            if (best == null || segmentTicks < best) {
+                course.stats.bestSegmentsTicks.set(i, segmentTicks);
+                goldSegmentsThisRun.add(order.get(i));
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
 
 
     private void snapshotBaselines(AstData.CourseFile course) {
@@ -308,17 +339,8 @@ public final class AstRuntime {
             if (course != null && course.stats != null) {
                 if (course.stats.pb != null && course.stats.pb.segmentTicks != null) {
                     baselinePbSeg = new ArrayList<>(course.stats.pb.segmentTicks);
-                    // Build PB split cumulative (same length)
-                    baselinePbSplit = new ArrayList<>(baselinePbSeg.size());
-                    int sCum = 0;
-                    for (Integer t : baselinePbSeg) {
-                        if (t == null) {
-                            baselinePbSplit.add(null);
-                        } else {
-                            sCum += t;
-                            baselinePbSplit.add(sCum);
-                        }
-                    }
+                    baselinePbSplit = course.stats.pb.splitTicks == null
+                            ? null : new ArrayList<>(course.stats.pb.splitTicks);
                 }
                 if (course.stats.bestSegmentsTicks != null) {
                     baselineBestSeg = new ArrayList<>(course.stats.bestSegmentsTicks);
@@ -361,6 +383,7 @@ public final class AstRuntime {
         nextIndex = Integer.MAX_VALUE;
         lastSplitCumulative = 0;
         lastCompletedSegmentTicks = null;
+        attemptCourse = null;
         insidePrev.clear();
         // IMPORTANT: do NOT reset startLatched here.
         // startLatched must be released only when the player actually leaves the Start region,

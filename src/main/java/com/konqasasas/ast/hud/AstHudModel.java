@@ -86,7 +86,8 @@ public final class AstHudModel {
         List<Integer> bestSeg = rt.getBaselineBestSegOrNull();
         List<Integer> bestSplit = rt.getBaselineBestSplitOrNull();
         if (pbSeg == null) pbSeg = course.stats.pb == null ? null : course.stats.pb.segmentTicks;
-        if (pbSplit == null) pbSplit = buildPbSplit(pbSeg);
+        if (pbSplit == null && course.stats.pb != null) pbSplit = course.stats.pb.splitTicks;
+        if (pbSplit == null) pbSplit = buildPbSplit(pbSeg); // legacy/in-memory fallback
         if (bestSeg == null) bestSeg = course.stats.bestSegmentsTicks;
         if (bestSplit == null) bestSplit = course.stats.bestSplitTicks;
 
@@ -296,7 +297,7 @@ public final class AstHudModel {
                     : "--";
 
             String sob = "--";
-            Integer sobTicks = sumIfComplete(course.stats.bestSegmentsTicks);
+            Integer sobTicks = effectiveSumOfBest(course, rt);
             if (sobTicks != null) sob = AstUtil.formatTicks(sobTicks, tf);
 
             String bpt = "--";
@@ -322,6 +323,27 @@ public final class AstHudModel {
                 s += t;
             }
             return s;
+        }
+
+        /**
+         * LiveSplit-style live SoB: a valid segment from the current attempt can
+         * improve the display immediately. Missing/skip-crossing segments never
+         * replace the saved Best Segment.
+         */
+        private static Integer effectiveSumOfBest(AstData.CourseFile course, AstRuntime rt) {
+            List<Integer> saved = course.stats.bestSegmentsTicks;
+            List<Integer> order = AstUtil.sortedNonStartIndices(course);
+            if (saved == null || order.isEmpty()) return null;
+            Map<Integer, Integer> current = rt.getRunSegmentTicks();
+            int sum = 0;
+            for (int i = 0; i < order.size(); i++) {
+                Integer candidate = i < saved.size() ? saved.get(i) : null;
+                Integer run = current.get(order.get(i));
+                if (run != null && (candidate == null || run < candidate)) candidate = run;
+                if (candidate == null) return null;
+                sum += candidate;
+            }
+            return sum;
         }
 
         private static Integer bestPossibleTicks(AstData.CourseFile course, AstRuntime rt) {

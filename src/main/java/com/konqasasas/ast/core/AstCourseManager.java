@@ -404,6 +404,7 @@ public final class AstCourseManager {
             if (cf.stats == null) cf.stats = new AstData.Stats();
             if (cf.segments == null) cf.segments = new ArrayList<>();
             normalizeSegments(cf);
+            migrateStats(cf, loadedVersion);
             normalizeStatsArrays(cf);
             // overwrite with global HUD (shared across courses)
             ensureGlobalHudLoaded();
@@ -579,7 +580,39 @@ public final class AstCourseManager {
         ensureSize(cf.stats.bestSegmentsTicks, n);
         ensureSize(cf.stats.bestSplitTicks, n);
         if (cf.stats.pb == null) cf.stats.pb = new AstData.PbRecord();
+        if (cf.stats.pb.segmentTicks == null) cf.stats.pb.segmentTicks = new ArrayList<>();
+        if (cf.stats.pb.splitTicks == null) cf.stats.pb.splitTicks = new ArrayList<>();
         ensureSize(cf.stats.pb.segmentTicks, n);
+        ensureSize(cf.stats.pb.splitTicks, n);
+    }
+
+    private static void migrateStats(AstData.CourseFile cf, int loadedVersion) {
+        if (cf.stats == null) cf.stats = new AstData.Stats();
+        if (cf.stats.pb == null) cf.stats.pb = new AstData.PbRecord();
+        if (loadedVersion >= 3 && cf.stats.pb.splitTicks != null) return;
+
+        int n = countTrackableSegments(cf);
+        List<Integer> migrated = new ArrayList<>(Collections.nCopies(n, null));
+        List<Integer> segments = cf.stats.pb.segmentTicks;
+        boolean complete = segments != null && segments.size() >= n;
+        int cumulative = 0;
+        if (complete) {
+            for (int i = 0; i < n; i++) {
+                Integer ticks = segments.get(i);
+                if (ticks == null) {
+                    complete = false;
+                    break;
+                }
+                cumulative += ticks;
+                migrated.set(i, cumulative);
+            }
+        }
+        if (!complete) {
+            Collections.fill(migrated, null);
+            // Even for an old PB containing skipped/unknown segments, its finish time is known.
+            if (n > 0 && cf.stats.pb.totalTicks != null) migrated.set(n - 1, cf.stats.pb.totalTicks);
+        }
+        cf.stats.pb.splitTicks = migrated;
     }
 
     /** Number of trackable segments excluding start (index 0). */

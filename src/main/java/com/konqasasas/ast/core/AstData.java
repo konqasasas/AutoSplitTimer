@@ -11,7 +11,7 @@ import java.util.*;
 public final class AstData {
     private AstData() {}
 
-    public static final int DATA_VERSION = 2;
+    public static final int DATA_VERSION = 3;
 
     public static class AabbDto {
         public double minX, minY, minZ;
@@ -70,6 +70,8 @@ public final class AstData {
     public static class PbRecord {
         public Integer totalTicks; // nullable
         public List<Integer> segmentTicks = new ArrayList<>(); // nullable entries allowed
+        /** Cumulative time at each actually reached split. Separate from segment times. */
+        public List<Integer> splitTicks = new ArrayList<>(); // nullable entries allowed
 
         public PbRecord() {}
     }

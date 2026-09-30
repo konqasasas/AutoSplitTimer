@@ -190,6 +190,7 @@ public final class AstNativeHudRenderer {
         course.stats.attemptCount = 24;
         course.stats.pb.totalTicks = 2590;
         course.stats.pb.segmentTicks = new java.util.ArrayList<>(Arrays.asList(553, 294, 320, 281, 372, 770));
+        course.stats.pb.splitTicks = new java.util.ArrayList<>(Arrays.asList(553, 847, 1167, 1448, 1820, 2590));
         course.stats.bestSegmentsTicks = new java.util.ArrayList<>(Arrays.asList(542, 285, 315, 273, 362, 747));
         course.stats.bestSplitTicks = new java.util.ArrayList<>(Arrays.asList(542, 827, 1142, 1415, 1777, 2524));
         return course;

@@ -279,7 +279,7 @@ public class CommandAstRoot extends CommandBase implements IClientCommand {
             msg(sender, "Usage: /ast run reset");
             return;
         }
-        AstRuntime.get().forceResetToIdle();
+        AstRuntime.get().resetAttemptAndSaveBests();
         msg(sender, "Run reset (IDLE)");
     }
 

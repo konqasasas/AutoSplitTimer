@@ -227,6 +227,8 @@ public final class AstCourseShareService {
         if (stats.pb != null) {
             validateTick(stats.pb.totalTicks);
             validateTicks(stats.pb.segmentTicks, expected);
+            // Optional for files exported before PB cumulative splits were introduced.
+            if (stats.pb.splitTicks != null) validateTicks(stats.pb.splitTicks, expected);
         }
         validateTicks(stats.bestSegmentsTicks, expected);
         validateTicks(stats.bestSplitTicks, expected);
